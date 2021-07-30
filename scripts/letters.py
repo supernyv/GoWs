@@ -33,74 +33,31 @@ class Letters():
         self.selected = False
 
         self.count = 1
+    
+    def get_sack_size(self):
+        """Get the number of letters left in the sack"""
+        self.number_letters_left = sum([number[1] for number in self.letters.values()])
 
     def load_rack(self):
         """Load 7 letters images"""
 
-        self.temp_images = []
-        self.temp_letters = []
-
-        self.temp_rects = []
-        self.temp_centers = []
-
         if self.number_letters_left > 7:
 
-            if len(self.rack_images) == 0:
-            #Only load 3 letters disregarding their number in the bag
-                while len(self.rack_images) < 4:
-                    let_a = choice(list(self.letters.keys()))
-                    if self.letters[let_a][1] > 0:
-                        image_a = pygame.image.load("img/"+let_a+".png").convert()
-                        self.rack_images.append(image_a)
-                        self.rack_letter_names.append(let_a+str(len(self.rack_letter_names)))
-                        self.letters[let_a][1] -= 1
+            while len(self.rack_images) < 7:
+                let_b = choice(list(self.letters.keys()))
+                if self.letters[let_b][1] > 0:
+                    image_b = pygame.image.load("img/"+let_b+".png").convert()
+                    self.rack_images.append(image_b)
+                    self.rack_letter_names.append(let_b+str(len(self.rack_letter_names)))
+                    self.letters[let_b][1] -= 1
+                    self.number_letters_left -= 1
 
-                        image_a_rect = image_a.get_rect()
-                        image_a_rect.x = self.rack_x
-                        image_a_rect.y = self.rack_y
-                        self.rack_rects.append(image_a_rect)
-                        self.rack_centers.append(image_a_rect.center)
-                        self.rack_x += 34
-
-                while len(self.rack_images) < 7:
-                    let_b = choice(list(self.letters.keys()))
-                    if self.letters[let_b][1] > 2:
-                        image_b = pygame.image.load("img/"+let_b+".png").convert()
-                        self.rack_images.append(image_b)
-                        self.rack_letter_names.append(let_b+str(len(self.rack_letter_names)))
-                        self.letters[let_b][1] -= 1
-
-                        image_b_rect = image_b.get_rect()
-                        image_b_rect.x = self.rack_x
-                        image_b_rect.y = self.rack_y
-                        self.rack_rects.append(image_b_rect)
-                        self.rack_centers.append(image_b_rect.center)
-                        self.rack_x += 34
-
-
-            elif len(self.rack_images) > 0 :
-                while len(self.temp_images) < 7 - len(self.rack_images):
-                    let_c = choice(list(self.letters.keys()))
-                    if self.letters[let_c][1] > 0:
-                        image_c = pygame.image.load("img/"+let_c+".png").convert()
-                        self.temp_images.append(image_c)
-                        self.temp_letters.append(let_c+str(len(self.rack_letter_names)))
-                        self.letters[let_c][1] -= 1
-
-                        image_c_rect = image_c.get_rect()
-                        image_c_rect.x = self.rack_x
-                        image_c_rect.y = self.rack_y
-                        self.temp_rects.append(image_c_rect)
-                        self.temp_centers.append(image_c_rect.center)
-                        self.rack_x += 34
-
-                self.rack_images += self.temp_images
-                self.rack_letter_names += self.temp_letters
-
-                self.rack_rects += self.temp_rects
-                self.rack_centers += self.temp_centers
-
-        self.number_letters_left = sum([number[1] for number in self.letters.values()])
+                    image_b_rect = image_b.get_rect()
+                    image_b_rect.x = self.rack_x
+                    image_b_rect.y = self.rack_y
+                    self.rack_rects.append(image_b_rect)
+                    self.rack_centers.append(image_b_rect.center)
+                    self.rack_x += 34
         
         #Zip images and rectangles
         self.rack_dict = dict(zip(self.rack_images, zip(self.rack_letter_names, self.rack_rects)))
@@ -122,6 +79,7 @@ class Letters():
                     if self.count == 0:
                         sfx.drop_letter_sound.play()
                         self.count += 1
+    
 
     def blit_let(self):
         """Draw the letter at its current location."""
