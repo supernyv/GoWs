@@ -1,5 +1,6 @@
+"""Author: Supernyv"""
+
 import pygame
-import numpy as np
 import sys, copy
 
 from scripts.menu import Menu
@@ -23,8 +24,8 @@ class GoWs():
         self.screen_rect = self.screen.get_rect()
         #Order Matters here
         self.stats = GoWsStats(self)
-        self.board = Board(self)
         self.let = Letters(self)
+        self.board = Board(self)
         self.check = GoWsChecker(self)
         self.buttons = Buttons(self)
         self.menu = Menu(self)
@@ -71,7 +72,8 @@ class GoWs():
                 if self.menu.game_pause == False:
                     self.create_grids()
                     self.store_reference_indexes()
-            
+
+                    self.let.get_sack_size()
                     self.let.load_rack()
                     self.let.update_let()
                     self.copy_board_array()
@@ -134,9 +136,9 @@ class GoWs():
         """Create the reference rectangles for board and rack"""
 
         #Board reference grids
-        x_axis = np.array([221, 251, 282, 313, 343, 374, 405, 435, 466, 497, 527, 558, 589, 619, 650])
+        x_axis = [221, 251, 282, 313, 343, 374, 405, 435, 466, 497, 527, 558, 589, 619, 650]
         #Would have used np.arange(221, 660, 31) if the grids were perfectly evenly spaced
-        y_axis = np.array([v - 100 for v in x_axis])
+        y_axis = [v - 100 for v in x_axis]
 
         self.board_grid = [pygame.Rect(x, y, 29, 29) for x in x_axis for y in y_axis]
         self.board_indexes = [(x, y) for x in range(15) for y in range(15)]
@@ -144,13 +146,13 @@ class GoWs():
         self.index_to_coordinates = dict(zip(self.board_indexes, self.board_grid))
 
         #Rack reference grids
-        new_x = np.array(list(range(318, 557, 34)))
+        new_x = list(range(318, 557, 34))
         new_y = [630]
         self.rack_grid = [pygame.Rect(x, y, 29, 29) for x in new_x for y in new_y]
 
         #Replacer reference grids
-        last_x = np.array(list(range(37, 137, 32)))
-        last_y = np.array([330, 363])
+        last_x = list(range(37, 137, 32))
+        last_y = [330, 363]
         self.replacer_grid = [pygame.Rect(x, y, 29, 29) for x in last_x for y in last_y]
 
 
@@ -162,8 +164,8 @@ class GoWs():
 
     def rack_in_collisions(self):
         """Nicer effect when rack letters collide. Optional though."""
-        for p in np.array(range(len(self.let.rack_rects))):
-            for n in np.array(range(len(self.let.rack_rects))):
+        for p in range(len(self.let.rack_rects)):
+            for n in range(len(self.let.rack_rects)):
                 if n != p:
                     if self.let.rack_rects[n].collidepoint(self.let.rack_rects[p].center):
                         self.let.rack_rects[n].center = self.let.rack_centers[n]
@@ -194,9 +196,9 @@ class GoWs():
         if self.let.selected == False:
         #Define what happens when a letter from rack is dropped on the board grids
 
-            for b in np.array(range(225)):
+            for b in range(225):
             #We have 225 board tiles
-                for l in np.array(range(len(self.let.rack_rects))):
+                for l in range(len(self.let.rack_rects)):
                 #and we have 7 or less rack tiles numbers depending on the bag.
 
                     #Collision between letters and all the board grids
@@ -225,9 +227,9 @@ class GoWs():
 
 
             #Define what happens when the letters from the rack are droped on the replace rack
-            for rep in np.array(range(8)):
+            for rep in range(8):
                 #Replace grids number
-                for l in np.array(range(len(self.let.rack_rects))):
+                for l in range(len(self.let.rack_rects)):
                     collisions_3 = self.replacer_grid[rep].colliderect(self.let.rack_rects[l])
 
                     if collisions_3:
@@ -238,9 +240,9 @@ class GoWs():
                         self.replaced_rects.append(self.let.rack_rects[l])
 
             #Define what happens when the letters generated from letters dictionary appear on the screen.
-            for r in np.array(range(8)):
+            for r in range(8):
             #We have 8 rack grids
-                for l in np.array(range(len(self.let.rack_rects))):
+                for l in range(len(self.let.rack_rects)):
                 #and we have 7 letters
                     collisions_2 = self.rack_grid[r].colliderect(self.let.rack_rects[l])
                     #Collision between letters and the rack grids
@@ -254,7 +256,7 @@ class GoWs():
 
 
             #Define what ahppens when rack letters drop on letters that have been locked on the board
-            for l in np.array(range(len(self.let.rack_rects))):
+            for l in range(len(self.let.rack_rects)):
             #Still 7 letters
                 for moved in self.moved_rects:
                 #Goes through all the listed board letter rectangles
@@ -326,7 +328,7 @@ class GoWs():
     def starting_move(self):
         """Make sure the game proceeds only if there is tile at the board's center grid"""
 
-        for l in np.array(range(len(self.used_rects))):
+        for l in range(len(self.used_rects)):
             
             collide_center = self.board_grid[112].colliderect(self.used_rects[l])
             #Collision between used letters and central board grids
@@ -372,9 +374,9 @@ class GoWs():
         held_horizontal = ""
         horizontal_id = ""
 
-        for column in np.array(range(16)):
+        for column in range(16):
             #To scan from top to bottom, right to left
-            for row in np.array(range(16)):
+            for row in range(16):
                 p = self.board_copy[column][row]
                 if not p:
                     if held_vertical:
@@ -391,9 +393,9 @@ class GoWs():
         #Previously added anew column to board_array to prevent attaching right edges letters to
         #Letters on the next first rows of the first column... Well, this is the easiest way to explain it.
         
-        for row in np.array(range(16)):
+        for row in range(16):
             #To scan from left to right, top to bottom
-            for column in np.array(range(16)):
+            for column in range(16):
                 n = self.board_copy[column][row]
                 if not n:
                     if held_horizontal:
@@ -430,6 +432,7 @@ class GoWs():
                     self.let.letters[letter_rect[0][0]][1] += 1
                     count_replaced += 1
                 self.buttons.replace_event = False
+                self.board.prep_sack(str(self.let.number_letters_left))
 
                 #Reset rack letters positions
                 x = 318
@@ -575,6 +578,8 @@ class GoWs():
 
                 self.board.prep_news()
                 self.board.prep_scores()
+                self.board.prep_sack(str(self.let.number_letters_left))
+                print(self.let.letters)
 
                 self._move_played_letters()
 
@@ -611,7 +616,6 @@ class GoWs():
         """"All rectangles on the board will have side rectangles where subsewuent letters should be placed."""
         #Imaginary rectangles that used letters must collide with for valid moves
         #These rectangles will be generated from rectangles already on the board
-
 
         self.imaginary = pygame.Surface((29, 29))
         self.imaginary.set_alpha(50)
@@ -665,7 +669,7 @@ class GoWs():
         """All grids with letter tile on top will have the value of that letter."""
 
 
-        for b in np.array(range(225)):
+        for b in range(225):
             for let, rect in self.moved_dict.values():
                 moved_collide = self.board_grid[b].colliderect(rect)
 
