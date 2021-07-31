@@ -33,24 +33,21 @@ class Letters():
         self.selected = False
 
         self.count = 1
-    
-    def get_sack_size(self):
-        """Get the number of letters left in the sack"""
-        self.number_letters_left = sum([number[1] for number in self.letters.values()])
+
 
     def load_rack(self):
         """Load 7 letters images"""
+        all_letters = list(self.letters.keys())
 
-        if self.number_letters_left > 7:
+        if len(list(self.letters.keys())) > 7:
 
             while len(self.rack_images) < 7:
-                let_b = choice(list(self.letters.keys()))
+                let_b = choice(all_letters)
                 if self.letters[let_b][1] > 0:
                     image_b = pygame.image.load("img/"+let_b+".png").convert()
                     self.rack_images.append(image_b)
                     self.rack_letter_names.append(let_b+str(len(self.rack_letter_names)))
                     self.letters[let_b][1] -= 1
-                    self.number_letters_left -= 1
 
                     image_b_rect = image_b.get_rect()
                     image_b_rect.x = self.rack_x
@@ -61,6 +58,10 @@ class Letters():
         
         #Zip images and rectangles
         self.rack_dict = dict(zip(self.rack_images, zip(self.rack_letter_names, self.rack_rects)))
+    
+    def get_sack_size(self):
+        """Get the number of letters left in the sack"""
+        self.number_letters_left = sum([number[1] for number in self.letters.values()])
 
     def update_let(self):
         """Update letter position based on movement flag."""
