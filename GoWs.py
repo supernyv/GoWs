@@ -65,16 +65,18 @@ class GoWs():
     def rungame(self):
         """Start the main loop of the game."""
 
+        self.create_grids()
+        self.store_reference_indexes()
+
         while True:
             self.check_events()
 
             if self.menu.game_run == True:
                 if self.menu.game_pause == False:
-                    self.create_grids()
-                    self.store_reference_indexes()
 
-                    self.let.get_sack_size()
                     self.let.load_rack()
+                    self.let.get_sack_size()
+                    self.board.prep_sack(str(self.let.number_letters_left))
                     self.let.update_let()
                     self.copy_board_array()
                     self.reset_used_items()
@@ -578,8 +580,6 @@ class GoWs():
 
                 self.board.prep_news()
                 self.board.prep_scores()
-                self.board.prep_sack(str(self.let.number_letters_left))
-                print(self.let.letters)
 
                 self._move_played_letters()
 
