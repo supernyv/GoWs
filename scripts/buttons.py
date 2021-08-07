@@ -5,12 +5,12 @@ import scripts.sound_effects as sfx
 class Buttons():
     """A class to manage all game buttons."""
 
-    def __init__(self, s_game):
+    def __init__(self, game):
         """Create and Initialize buttons positions"""
 
-        self.screen = s_game.screen
+        self.screen = game.screen
         self.screen_rect = self.screen.get_rect()
-        self.board = s_game.board
+        self.board = game.board
 
         self.play_active = False
         self.play_event = False
@@ -108,6 +108,7 @@ class Buttons():
                 self.replace_active = False
 
     def draw_buttons(self):
+        
         """Draw all the buttons on the game screen."""
 
         if self.play_active:

@@ -1,6 +1,5 @@
 import pygame
-
-pygame.mixer.pre_init(20070, -16, 2, 1024)
+pygame.mixer.pre_init(20070, -16, 2, 1024) #(frequency in Hz, Bitdepth, Number of channels 1 for mono and 2 stereo, buffer size
 pygame.mixer.init()
 
 replace_sound = pygame.mixer.Sound('sounds/futuristic-slide.wav')

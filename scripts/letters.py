@@ -6,11 +6,11 @@ import scripts.sound_effects as sfx
 class Letters():
     """A class to manage all the letters."""
 
-    def __init__(self, s_game):
+    def __init__(self, game):
         """Create and Initialize letters position."""
 
-        self.screen = s_game.screen
-        self.screen_rect = s_game.screen.get_rect()
+        self.screen = game.screen
+        self.screen_rect = game.screen.get_rect()
 
         self.letters = {"A" : [1, 9], "B" : [3, 2], "C" : [3, 3], "D" : [2, 3], "E" : [1, 15], 
                 "F" : [4, 2], "G" : [2, 2], "H" : [4, 2], "I" : [1, 8], "J" : [8, 1], 
@@ -80,7 +80,26 @@ class Letters():
                     if self.count == 0:
                         sfx.drop_letter_sound.play()
                         self.count += 1
-    
+
+
+    def reset_rack(self):
+        self.letters = {"A" : [1, 9], "B" : [3, 2], "C" : [3, 3], "D" : [2, 3], "E" : [1, 15], 
+                "F" : [4, 2], "G" : [2, 2], "H" : [4, 2], "I" : [1, 8], "J" : [8, 1], 
+                "K" : [10, 1], "L" : [1, 5], "M" : [2, 4], "N" : [1, 6], "O" : [1, 6], 
+                "P" : [3, 2], "Q" : [8, 1], "R" : [1, 6], "S" : [1, 6], "T" : [1, 6], 
+                "U" : [1, 6], "V" : [4, 2], "W" : [10, 1], "X" : [10, 1], "Y" : [10, 1], "Z" : [10, 1]}
+
+        self.number_letters_left = sum([number[1] for number in self.letters.values()])
+        self.rack_images = []
+        self.rack_letter_names = []
+        self.rack_rects = []
+        self.rack_centers = []
+
+        self.rack_images = []
+        self.rack_letter_names = []
+        self.rack_rects = []
+        self.rack_centers = []
+
 
     def blit_let(self):
         """Draw the letter at its current location."""
