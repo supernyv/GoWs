@@ -1,13 +1,13 @@
 """Author: Supernyv"""
 
 import pygame
-import sys, copy
+import copy, platform
+from sys import exit
 
 from scripts.menu import Menu
 from scripts.board import Board
 from scripts.buttons import Buttons
 from scripts.letters import Letters
-from scripts.all_stats import GoWsStats
 from scripts.checker import GoWsChecker
 import scripts.sound_effects as sfx
 
@@ -18,12 +18,11 @@ class GoWs():
         pygame.init()
         self.SCREENWIDTH = 900
         self.SCREENHEIGHT = 700
-        self.screen = pygame.display.set_mode((self.SCREENWIDTH, self.SCREENHEIGHT))
+        self.screen = pygame.display.set_mode((self.SCREENWIDTH, self.SCREENHEIGHT),0, 32)
         self.bg_color = (30, 40, 50)
-        pygame.display.set_caption("GoWs")
+        pygame.display.set_caption(f"GoWs    |    Python {platform.python_version()}    |    Pygame {pygame.version.ver}    |    SDL {'.'.join([str(v) for v in pygame.get_sdl_version()])}")
         self.screen_rect = self.screen.get_rect()
         #Order Matters here
-        self.stats = GoWsStats(self)
         self.let = Letters(self)
         self.board = Board(self)
         self.check = GoWsChecker(self)
@@ -57,12 +56,15 @@ class GoWs():
         self.vertical_on = False
         self.horizontal_on = False
 
+
         pygame.mixer.music.load('sounds/Kotalogie.mp3')
         pygame.mixer.music.set_volume(0.5)
         pygame.mixer.music.play(-1, 0.00, 5000)     #(-1 is loop indefinetely, delay, fade in)
 
+        pygame.event.set_allowed([pygame.QUIT, pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP, pygame.K_ESCAPE, pygame.K_SPACE])
 
-    def rungame(self):
+
+    def start_game(self):
         """Start the main loop of the game."""
 
         self.create_grids()
@@ -71,42 +73,26 @@ class GoWs():
         while True:
             self.check_events()
 
-            if self.menu.game_run == True:
-                if self.menu.game_pause == False:
-
-                    self.let.load_rack()
-                    self.let.get_sack_size()
-                    self.board.prep_sack(str(self.let.number_letters_left))
-                    self.let.update_let()
-                    self.copy_board_array()
-                    self.reset_used_items()
-                    self.check_grids_letters_collision()
-                    self.rack_in_collisions()
-                    self.store_used_letters()
-
-                    self.aligned_test()
-                    self.empty_space_test()
-                    self.starting_move()
-                    self.valid_follow_up()
-                    self.cross_words()
-
-                    self.if_any_replacement()
-                    self.buttons.check_play_event()
-                    self.buttons.check_undo_event()
-                    self.buttons.check_replace_event()
-
-                    self.make_the_word()
-                    self.zip_moved_letters()
-                    self.place_moved_letters()
-                    self.make_imaginary_rects()
-                
-                else:
-                    self.menu.get_menu()
-
-            if self.menu.game_run == False:
+            if self.menu.main_menu_on:
                 self.menu.get_menu()
 
+            elif not self.menu.main_menu_on:
+                if self.menu.new_game == True:
+                    if self.menu.watcher == 0:
+                        self.new_game()
+                        self.menu.watcher += 1
+                    else:
+                        self.continue_game()
+
+                if self.menu.game_paused == True:
+                    self.menu.get_menu()
+                
+                else:
+                    self.continue_game()
+
+
             self.update_screen()
+        pygame.quit()
 
 
     def check_events(self):
@@ -114,7 +100,7 @@ class GoWs():
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                sys.exit()
+                exit()
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
                     self.let.selected = True
@@ -126,12 +112,77 @@ class GoWs():
 
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    self.menu.game_run = False
+                    self.menu.main_menu_on = True
 
                 elif event.key == pygame.K_SPACE:
                     #Pause game to a menu with continue option
-                    self.menu.game_pause = True
+                    self.menu.game_paused = True
 
+
+    def continue_game(self):
+        """Gaming function"""
+
+        self.let.load_rack()
+        self.let.get_sack_size()
+        self.board.prep_sack(str(self.let.number_letters_left))
+        self.let.update_let()
+        self.copy_board_array()
+        self.reset_used_items()
+        self.check_grids_letters_collision()
+        self.rack_in_collisions()
+        self.store_used_letters()
+
+        self.aligned_test()
+        self.empty_space_test()
+        self.starting_move()
+        self.valid_follow_up()
+        self.cross_words()
+
+        self.if_any_replacement()
+        self.buttons.check_play_event()
+        self.buttons.check_undo_event()
+        self.buttons.check_replace_event()
+
+        self.make_the_word()
+        self.zip_moved_letters()
+        self.place_moved_letters()
+        self.make_imaginary_rects()
+
+    def new_game(self):
+
+        #Items moved to the board during game
+        self.moved_images = []
+        self.moved_rects = []
+        self.moved_letters = []
+        self.words_ids = []
+
+        #This listed will be written over but is needed here
+        self.horizontal_words_list = []
+        self.vertical_words_list = []
+
+        #Imaginary rectangles
+        self.all_imaginary_indexes = []
+        self.board_array = [[{} for col in range(16)] for row in range(16)]
+
+        self.let.rack_x = 318
+        self.let.rack_y = 630
+
+
+        self.board.player_1_score = 0
+        self.board.player_2_score = 0
+        self.board.news = ""
+
+        self.board.prep_news()
+        self.board.prep_scores()
+        self.let.reset_rack()
+        self.menu.watcher = 0
+
+        #First move flag
+        self.started = False
+
+        #Allowed directions flags
+        self.vertical_on = False
+        self.horizontal_on = False
 
 
     def create_grids(self):
@@ -502,27 +553,27 @@ class GoWs():
                                 elif True not in self.validate_moves:
                                     self._reset_tiles_positions()
                                     sfx.placement_sound.play()
-                                    self.stats.news = f"Missed contact!"
+                                    self.board.news = f"Missed contact!"
                                     self.board.prep_news()
                                     self.buttons.play_event = False
 
                         elif False in self.aligned:
                             self._reset_tiles_positions()
                             sfx.placement_sound.play()
-                            self.stats.news = f"Wrong Alignment!"
+                            self.board.news = f"Wrong Alignment!"
                             self.board.prep_news()
                             self.buttons.play_event = False
 
                     elif self.empty_space_in == True:
                         self._reset_tiles_positions()
                         sfx.placement_sound.play()
-                        self.stats.news = f"Multiple words!"
+                        self.board.news = f"Multiple words!"
                         self.board.prep_news()
                         self.buttons.play_event = False
 
                 elif not self.started:
                     sfx.placement_sound.play()
-                    self.stats.news = f"Missed the board center!"
+                    self.board.news = f"Missed the board center!"
                     self.board.prep_news()
                     self._reset_tiles_positions()
                     self.buttons.play_event = False
@@ -557,7 +608,7 @@ class GoWs():
             for l in range(len(self.let.rack_rects)):
                 self._undo(l)
             sfx.invalid_word_sound.play()
-            self.stats.news = f"{self.invalid_words[0]} not valid."
+            self.board.news = f"{self.invalid_words[0]} not valid."
             self.board.prep_news()
             self.accepted = False
 
@@ -567,16 +618,16 @@ class GoWs():
                 sfx.valid_word_sound.play()
 
                 if self.board.player_1 == True:
-                    self.stats.player_1_score += self.points
+                    self.board.player_1_score += self.points
                     self.board.player_1 = False
                     self.board.player_2 = True
 
                 elif self.board.player_2 == True:
-                    self.stats.player_2_score += self.points
+                    self.board.player_2_score += self.points
                     self.board.player_1 = True
                     self.board.player_2 = False
 
-                self.stats.news = f"{self.valid_words[0]} : + {self.points}"
+                self.board.news = f"{self.valid_words[0]} : + {self.points}"
 
                 self.board.prep_news()
                 self.board.prep_scores()
@@ -587,7 +638,7 @@ class GoWs():
                 for l in range(len(self.let.rack_rects)):
                     self._undo(l)
                 sfx.invalid_word_sound.play()
-                self.stats.news = f"No valid words."
+                self.board.news = f"No valid words."
                 self.board.prep_news()
                 self.accepted = False
 
@@ -617,7 +668,7 @@ class GoWs():
         #Imaginary rectangles that used letters must collide with for valid moves
         #These rectangles will be generated from rectangles already on the board
 
-        self.imaginary = pygame.Surface((29, 29))
+        self.imaginary = pygame.Surface((29, 29)).convert()
         self.imaginary.set_alpha(50)
         self.imaginary.fill((50, 250, 20))
 
@@ -713,23 +764,31 @@ class GoWs():
 
         self.screen.fill(self.bg_color)
 
-        if self.menu.game_run == True:
-            if self.menu.game_pause == False:
+        if self.menu.main_menu_on:
+            self.menu.draw_menu()
+
+        else:
+            if self.menu.new_game == True:
                 self.board.draw_board()
                 self.buttons.draw_buttons()
                 if self.moved_images:
                     self.draw_imaginary_rects()
                     self.draw_played_letters()
                 self.let.blit_let()
+
+            if self.menu.game_paused == True:
+                self.menu.draw_menu()
+
             else:
-                self.menu.draw_pause_menu()
+                self.board.draw_board()
+                self.buttons.draw_buttons()
+                if self.moved_images:
+                    self.draw_imaginary_rects()
+                    self.draw_played_letters()
+                self.let.blit_let()
 
-        elif self.menu.game_run == False:
-            self.menu.draw_main_menu()
-
-
-        pygame.display.flip()
+        pygame.display.update()
 
 if __name__ == "__main__":
-    s_game = GoWs()
-    s_game.rungame()
+    game = GoWs()
+    game.start_game()
