@@ -92,7 +92,6 @@ class GoWs():
 
 
             self.update_screen()
-        pygame.quit()
 
 
     def check_events(self):
@@ -100,6 +99,7 @@ class GoWs():
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
+                pygame.quit()
                 exit()
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
@@ -768,14 +768,6 @@ class GoWs():
             self.menu.draw_menu()
 
         else:
-            if self.menu.new_game == True:
-                self.board.draw_board()
-                self.buttons.draw_buttons()
-                if self.moved_images:
-                    self.draw_imaginary_rects()
-                    self.draw_played_letters()
-                self.let.blit_let()
-
             if self.menu.game_paused == True:
                 self.menu.draw_menu()
 
