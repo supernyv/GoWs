@@ -17,8 +17,7 @@ class Buttons():
 
         #Play Button, not clicked
         self.play_button = pygame.image.load("img/Play_Button.png").convert_alpha()
-        self.play_button_rect = self.play_button.get_rect()
-        self.play_button_rect.center = self.screen_rect.center
+        self.play_button_rect = self.play_button.get_rect(center=self.screen_rect.center)
         self.play_button_rect.x += 200
         self.play_button_rect.y += 295
         #Play Button, clicked
@@ -30,8 +29,7 @@ class Buttons():
 
         #Undo Button, when not clicked on
         self.undo_button = pygame.image.load("img/Undo_Button.png").convert_alpha()
-        self.undo_button_rect = self.undo_button.get_rect()
-        self.undo_button_rect.center = self.screen_rect.center
+        self.undo_button_rect = self.undo_button.get_rect(center=self.screen_rect.center)
         self.undo_button_rect.x -= 200
         self.undo_button_rect.y = self.play_button_rect.y
         #Undo Button, when clicked on
