@@ -64,13 +64,16 @@ class Board():
         self.sack_rect.center = self.panel_rect.center
         self.sack_rect.y += 200
 
-        self.player_1_score = 00
-        self.player_2_score = 00
-        self.news = ""
+        self.reset_scores()
 
         self.prep_news()
         self.prep_scores()
         self.prep_sack()
+
+    def reset_scores(self):
+        self.player_1_score = 00
+        self.player_2_score = 00
+        self.news = ""
 
     def prep_news(self):
         """Initialize texts that are displayed during the game."""
