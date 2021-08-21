@@ -11,6 +11,8 @@ from scripts.letters import Letters
 from scripts.checker import GoWsChecker
 import scripts.sound_effects as sfx
 
+green_color = (50, 250, 20)
+
 class GoWs():
     """Game of Words (GoWs), by Supernyv."""
     def __init__(self):
@@ -30,9 +32,7 @@ class GoWs():
         self.menu = Menu(self)
 
         #Items moved to the board during game
-        self.moved_images = []
-        self.moved_rects = []
-        self.moved_letters = []
+        self.moved_dict = {}
         self.words_ids = []
 
         #This listed will be written over but is needed here
@@ -41,7 +41,7 @@ class GoWs():
 
         #Imaginary rectangles
         self.all_imaginary_indexes = []
-        
+
         #Create board array to hold played letters and empty spaces:
         self.board_array = [[{} for col in range(16)] for row in range(16)]
         #This must be 16 instead of the expected 15, see the crossword function
@@ -56,6 +56,8 @@ class GoWs():
         self.vertical_on = False
         self.horizontal_on = False
 
+        self.create_board_rectangles()
+
 
         pygame.mixer.music.load('sounds/Kotalogie.mp3')
         pygame.mixer.music.set_volume(0.5)
@@ -66,9 +68,6 @@ class GoWs():
 
     def start_game(self):
         """Start the main loop of the game."""
-
-        self.create_grids()
-        self.store_reference_indexes()
 
         while True:
             self.check_events()
@@ -86,10 +85,9 @@ class GoWs():
 
                 if self.menu.game_paused == True:
                     self.menu.get_menu()
-                
+
                 else:
                     self.continue_game()
-
 
             self.update_screen()
 
@@ -144,33 +142,27 @@ class GoWs():
         self.buttons.check_replace_event()
 
         self.make_the_word()
-        self.zip_moved_letters()
         self.place_moved_letters()
         self.make_imaginary_rects()
 
     def new_game(self):
 
         #Items moved to the board during game
-        self.moved_images = []
-        self.moved_rects = []
-        self.moved_letters = []
+        self.moved_dict = {}
         self.words_ids = []
 
         #This listed will be written over but is needed here
         self.horizontal_words_list = []
         self.vertical_words_list = []
 
-        #Imaginary rectangles
+        #Imaginary rectangles references
         self.all_imaginary_indexes = []
         self.board_array = [[{} for col in range(16)] for row in range(16)]
 
         self.let.rack_x = 318
         self.let.rack_y = 630
 
-
-        self.board.player_1_score = 0
-        self.board.player_2_score = 0
-        self.board.news = ""
+        self.board.reset_scores()
 
         self.board.prep_news()
         self.board.prep_scores()
@@ -184,21 +176,19 @@ class GoWs():
         self.vertical_on = False
         self.horizontal_on = False
 
-
-    def create_grids(self):
-        """Create the reference rectangles for board and rack"""
-
+    def create_board_rectangles(self):
+        """The reference grids that will be used in the game"""
         #Board reference grids
-        x_axis = [221, 251, 282, 313, 343, 374, 405, 435, 466, 497, 527, 558, 589, 619, 650]
+        x_coordinates = [221, 251, 282, 313, 343, 374, 405, 435, 466, 497, 527, 558, 589, 619, 650]
         #Would have used np.arange(221, 660, 31) if the grids were perfectly evenly spaced
-        y_axis = [v - 100 for v in x_axis]
+        y_coordinates = [v - 100 for v in x_coordinates]
 
-        self.board_grid = [pygame.Rect(x, y, 29, 29) for x in x_axis for y in y_axis]
+        self.board_rectangles = [pygame.Rect(x, y, 29, 29) for x in x_coordinates for y in y_coordinates]
         self.board_indexes = [(x, y) for x in range(15) for y in range(15)]
         #Because x come first, the board is read by columns (top to bottom)
-        self.index_to_coordinates = dict(zip(self.board_indexes, self.board_grid))
+        self.index_to_rectangle = dict(zip(self.board_indexes, self.board_rectangles))
 
-        #Rack reference grids
+        #Rack reference grid rectangles
         new_x = list(range(318, 557, 34))
         new_y = [630]
         self.rack_grid = [pygame.Rect(x, y, 29, 29) for x in new_x for y in new_y]
@@ -208,11 +198,9 @@ class GoWs():
         last_y = [330, 363]
         self.replacer_grid = [pygame.Rect(x, y, 29, 29) for x in last_x for y in last_y]
 
-
-    def store_reference_indexes(self):
-        """Store every board grid reference rectangle with its index."""
+        #Store every board grid reference rectangle with its index.
         rect_numbers = range(225)
-        self.index_and_number = dict(zip(self.board_indexes, rect_numbers))
+        self.index_to_number = dict(zip(self.board_indexes, rect_numbers))
 
 
     def rack_in_collisions(self):
@@ -232,11 +220,12 @@ class GoWs():
         self.used_rects = []
         self.used_letters = []
         self.used_indexes = []
+        self.used_ids = []
 
         self.replaced_letters = []
         self.replaced_rects = []
         self.replaced_images = []
-    
+
 
     def copy_board_array(self):
         """Copy the board"""
@@ -244,7 +233,6 @@ class GoWs():
 
     def check_grids_letters_collision(self):
         """Detect any collision between reference rectangles on grids and used letters rectangles."""
-        #List for temporary storing letters that colide with the board
 
         if self.let.selected == False:
         #Define what happens when a letter from rack is dropped on the board grids
@@ -255,24 +243,25 @@ class GoWs():
                 #and we have 7 or less rack tiles numbers depending on the bag.
 
                     #Collision between letters and all the board grids
-                    collisions_1 = self.board_grid[b].colliderect(self.let.rack_rects[l])
+                    collisions_1 = self.board_rectangles[b].colliderect(self.let.rack_rects[l])
 
                     if collisions_1:
-                        self.let.rack_rects[l].center = self.board_grid[b].center
+                        self.let.rack_rects[l].center = self.board_rectangles[b].center
 
                         self.used_images.append(self.let.rack_images[l])
                         self.used_letters.append(self.let.rack_letter_names[l])
                         self.used_rects.append(self.let.rack_rects[l])
 
-                        #Now set the value of the array grid for the index where collision happened
-                        for index, rect_number in self.index_and_number.items():
-                            if self.board_grid.index(self.board_grid[b]) == rect_number:
+                        #Now get the coordinates of the grid where collision happened
+                        for index, rect_number in self.index_to_number.items():
+                            if self.board_rectangles.index(self.board_rectangles[b]) == rect_number:
                                 i = index[0]
                                 j = index[1]
 
-                                self.used_indexes.append([i, j])
                                 let_id = str(rect_number) + '_'
-                                self.board_copy[i][j][self.let.rack_letter_names[l][0]] = let_id
+                                self.used_indexes.append([i, j])
+                                self.used_ids.append(let_id)
+                                self.board_copy[i][j][self.let.rack_letter_names[l]] = let_id
 
                         #If undo button is pressed while some letters are on the board.
                         if self.buttons.undo_event:
@@ -287,7 +276,7 @@ class GoWs():
 
                     if collisions_3:
                         self.let.rack_rects[l].center = self.replacer_grid[rep].center
-                    
+
                         self.replaced_images.append(self.let.rack_images[l])
                         self.replaced_letters.append(self.let.rack_letter_names[l])
                         self.replaced_rects.append(self.let.rack_rects[l])
@@ -311,9 +300,9 @@ class GoWs():
             #Define what ahppens when rack letters drop on letters that have been locked on the board
             for l in range(len(self.let.rack_rects)):
             #Still 7 letters
-                for moved in self.moved_rects:
+                for let, index, rect in self.moved_dict.values():
                 #Goes through all the listed board letter rectangles
-                    collisions_4 = moved.colliderect(self.let.rack_rects[l])
+                    collisions_4 = rect.colliderect(self.let.rack_rects[l])
 
                     if collisions_4:
                         self._undo(l)
@@ -324,20 +313,14 @@ class GoWs():
 
     def store_used_letters(self):
         """Store image, location, letter name, and rectangle for each used letter"""
-        self.used_dict = dict(zip(self.used_images, zip(self.used_letters, self.used_rects)))
+        self.used_dict = dict(zip(zip(self.used_images, self.used_ids), zip(self.used_letters, self.used_indexes, self.used_rects)))
         self.replaced_dict = dict(zip(self.replaced_images, zip(self.replaced_letters, self.replaced_rects)))
 
 
     def aligned_test(self):
         """To make sure all letters are aligned with the first placed on board"""
         self.aligned = []
-        for rect in self.used_rects:
-            if rect.x != self.used_rects[0].x:
-                self.horizontal_on = False
-                if rect.y != self.used_rects[0].y:
-                    self.vertical_on = False
-                    self.aligned.append(False)
-                        
+    
         #Once more than two letters are on the board, only one direction is allowed
         if len(self.used_rects) >= 2:
             if self.used_rects[1].x == self.used_rects[0].x:
@@ -358,47 +341,46 @@ class GoWs():
 
         self.empty_space_in = False
         truth_test = []
-        
+
         if self.used_indexes:
             x, y = self.used_indexes[0]
 
             for _ in range(len(self.used_indexes) - 1):
                 if self.vertical_on:
                     y += 1
-                    if not self.board_copy[x][y]:
-                        truth_test.append(False)
-                if self.horizontal_on:
+                    #For each first check if not self.board_array
+                    if self.board_array[x][y]:
+                        y += 1
+                        if not self.board_copy[x][y]:
+                            truth_test.append(False)
+                    else:
+                        if not self.board_copy[x][y]:
+                            truth_test.append(False)
+
+                elif self.horizontal_on:
                     x += 1
-                    if not self.board_copy[x][y]:
-                        truth_test.append(False)
+                    #For each first check if not self.board_array
+                    if self.board_array[x][y]:
+                        x += 1
+                        if not self.board_copy[x][y]:
+                            truth_test.append(False)
+                    else:
+                        if not self.board_copy[x][y]:
+                            truth_test.append(False)
+
 
         if False in truth_test:
             self.empty_space_in = True
-        else:
-            self.empty_space_in = False
 
-        
+
     def starting_move(self):
         """Make sure the game proceeds only if there is tile at the board's center grid"""
 
-        for l in range(len(self.used_rects)):
-            
-            collide_center = self.board_grid[112].colliderect(self.used_rects[l])
-            #Collision between used letters and central board grids
-            if not self.let.selected:
-                if collide_center:
-                    self.started = True
-                        
-                    if self.buttons.undo_event:
-                        self.started = False
-                
-                    if False in self.aligned:
-                        self.started = False
-        #Because self.started is set to true once a collision is detected, when the collided tile is moved,
-        #Self.started remains true, so next is to make sure that does not happen.
-        if not self.moved_rects:
+        if not self.moved_dict:
             if not self.board_copy[7][7]:
                 self.started = False
+            else:
+                self.started = True
 
 
     def valid_follow_up(self):
@@ -408,15 +390,14 @@ class GoWs():
         for index in self.used_indexes:
             if index in self.all_imaginary_indexes:
                 self.validate_moves.append(True)
+                #At least one index is already in imaginary indexes, indicating contact
 
         if True not in self.validate_moves:
             self.validate_moves.append(False)
 
-    
+
     def cross_words(self):
         """Get vertical and horizontal words"""
-
-        self.word_found = ""
 
         self.words_formed_vertical = {}
         self.words_formed_horizontal = {}
@@ -427,6 +408,8 @@ class GoWs():
         held_horizontal = ""
         horizontal_id = ""
 
+        #Ranges need to be 16, not 15, so that the last row and the last column
+        #Always end the previous word formed, preventing the code from joining different loops
         for column in range(16):
             #To scan from top to bottom, right to left
             for row in range(16):
@@ -440,12 +423,10 @@ class GoWs():
                         vertical_id = ""
 
                 else:
-                    held_vertical += list(p.keys())[0]
-                    vertical_id += list(p.values())[0]
+                    held_vertical += next(iter(p))
+                    vertical_id += next(iter(p.values()))
 
-        #Previously added anew column to board_array to prevent attaching right edges letters to
-        #Letters on the next first rows of the first column... Well, this is the easiest way to explain it.
-        
+
         for row in range(16):
             #To scan from left to right, top to bottom
             for column in range(16):
@@ -458,9 +439,9 @@ class GoWs():
                         held_horizontal = ""
                         horizontal_id = ""
                 else:
-                    held_horizontal += list(n.keys())[0]
-                    horizontal_id += list(n.values())[0]
-        
+                    held_horizontal += next(iter(n))
+                    horizontal_id += next(iter(n.values()))
+
         if self.words_formed_vertical:
             self.vertical_words_list = [
                 word for word, w_id in self.words_formed_vertical.items() if w_id not in self.words_ids]
@@ -482,17 +463,13 @@ class GoWs():
                     del self.let.rack_letter_names[self.let.rack_rects.index(letter_rect[1])]
                     self.let.rack_rects.remove(letter_rect[1])
                     self.let.rack_images.remove(image)
-                    self.let.letters[letter_rect[0][0]][1] += 1
+                    self.let.letters[letter_rect[0]][1] += 1
                     count_replaced += 1
                 self.buttons.replace_event = False
                 self.board.prep_sack(str(self.let.number_letters_left))
 
                 #Reset rack letters positions
-                x = 318
-                for rect in self.let.rack_rects:
-                    rect.x = x
-                    x += 34
-                self.let.rack_x = x
+                self._reset_rack_coordinates()
 
         if count_replaced > 0:
             if self.board.player_1 == True:
@@ -502,6 +479,12 @@ class GoWs():
                 self.board.player_1 = True
                 self.board.player_2 = False
 
+    def _reset_rack_coordinates(self):
+        x = 318
+        for rect in self.let.rack_rects:
+            rect.x = x
+            x += 34
+        self.let.rack_x = x
 
     def make_the_word(self):
         """Formed a worded using the letters placed on the board when play button is pressed
@@ -518,7 +501,7 @@ class GoWs():
                     if self.empty_space_in == False:
 
                         if False not in self.aligned:
-                            if len(self.moved_rects) == 0:
+                            if not self.moved_dict:
                                 if self.horizontal_on:
                                     self._word_checking(self.horizontal_words_list[0])
                                 elif self.vertical_on:
@@ -527,7 +510,7 @@ class GoWs():
                                 self._confirmed_or_rejected()
                                 self.buttons.play_event = False
 
-                            elif len(self.moved_rects) > 0:
+                            else:
                                 if True in self.validate_moves:
                                     if self.horizontal_on:
                                         for word in self.horizontal_words_list:
@@ -549,29 +532,29 @@ class GoWs():
 
                                     self._confirmed_or_rejected()
                                     self.buttons.play_event = False
-                                    
-                                elif True not in self.validate_moves:
+    
+                                else:
                                     self._reset_tiles_positions()
                                     sfx.placement_sound.play()
                                     self.board.news = f"Missed contact!"
                                     self.board.prep_news()
                                     self.buttons.play_event = False
 
-                        elif False in self.aligned:
+                        else:
                             self._reset_tiles_positions()
                             sfx.placement_sound.play()
                             self.board.news = f"Wrong Alignment!"
                             self.board.prep_news()
                             self.buttons.play_event = False
 
-                    elif self.empty_space_in == True:
+                    else:
                         self._reset_tiles_positions()
                         sfx.placement_sound.play()
                         self.board.news = f"Multiple words!"
                         self.board.prep_news()
                         self.buttons.play_event = False
 
-                elif not self.started:
+                else:
                     sfx.placement_sound.play()
                     self.board.news = f"Missed the board center!"
                     self.board.prep_news()
@@ -645,22 +628,17 @@ class GoWs():
 
     def _move_played_letters(self):
         #Delete letters, Images, and their rectangles from rack and move them to board
-        for image, letter_and_rect in self.used_dict.items():
+        for image_id, letter_index_rect in self.used_dict.items():
 
-            self.moved_images.append(image)
-            self.moved_rects.append(letter_and_rect[1])
-            self.moved_letters.append(letter_and_rect[0])
 
-            del self.let.rack_letter_names[self.let.rack_rects.index(letter_and_rect[1])]
-            self.let.rack_rects.remove(letter_and_rect[1])
-            self.let.rack_images.remove(image)
-        
+            self.moved_dict[image_id] = letter_index_rect
+
+            del self.let.rack_letter_names[self.let.rack_rects.index(letter_index_rect[2])]
+            self.let.rack_rects.remove(letter_index_rect[2])
+            self.let.rack_images.remove(image_id[0])
+
         #Reset rack letters positions
-        x = 318
-        for rect in self.let.rack_rects:
-            rect.x = x
-            x += 34
-        self.let.rack_x = x
+        self._reset_rack_coordinates()
 
 
     def make_imaginary_rects(self):
@@ -670,7 +648,7 @@ class GoWs():
 
         self.imaginary = pygame.Surface((29, 29)).convert()
         self.imaginary.set_alpha(50)
-        self.imaginary.fill((50, 250, 20))
+        self.imaginary.fill(green_color)
 
         self.imaginary_rectangles = []
 
@@ -679,65 +657,52 @@ class GoWs():
                 if self.board_array[i][j]:
                     if i == 0:
                         if not self.board_array[i+1][j]:
-                            self.imaginary_rectangles.append(self.index_to_coordinates[(i+1, j)])
+                            self.imaginary_rectangles.append(self.index_to_rectangle[(i+1, j)])
                             self.all_imaginary_indexes.append([i+1, j])
                     elif i == 14:
                         if not self.board_array[i-1][j]:
-                            self.imaginary_rectangles.append(self.index_to_coordinates[(i-1, j)])
+                            self.imaginary_rectangles.append(self.index_to_rectangle[(i-1, j)])
                             self.all_imaginary_indexes.append([i-1, j])
                     else:
                         if not self.board_array[i+1][j]:
-                            self.imaginary_rectangles.append(self.index_to_coordinates[(i+1, j)])
+                            self.imaginary_rectangles.append(self.index_to_rectangle[(i+1, j)])
                             self.all_imaginary_indexes.append([i+1, j])
                         if not self.board_array[i-1][j]:
-                            self.imaginary_rectangles.append(self.index_to_coordinates[(i-1, j)])
+                            self.imaginary_rectangles.append(self.index_to_rectangle[(i-1, j)])
                             self.all_imaginary_indexes.append([i-1, j])
 
                     if j == 0:
                         if not self.board_array[i][j+1]:
-                            self.imaginary_rectangles.append(self.index_to_coordinates[(i, j+1)])
+                            self.imaginary_rectangles.append(self.index_to_rectangle[(i, j+1)])
                             self.all_imaginary_indexes.append([i, j+1])
                     elif j == 14:
                         if not self.board_array[i][j-1]:
-                            self.imaginary_rectangles.append(self.index_to_coordinates[(i, j-1)])
+                            self.imaginary_rectangles.append(self.index_to_rectangle[(i, j-1)])
                             self.all_imaginary_indexes.append([i, j-1])
                     else:
                         if not self.board_array[i][j+1]:
-                            self.imaginary_rectangles.append(self.index_to_coordinates[(i, j+1)])
+                            self.imaginary_rectangles.append(self.index_to_rectangle[(i, j+1)])
                             self.all_imaginary_indexes.append([i, j+1])
                         if not self.board_array[i][j-1]:
-                            self.imaginary_rectangles.append(self.index_to_coordinates[(i, j-1)])
+                            self.imaginary_rectangles.append(self.index_to_rectangle[(i, j-1)])
                             self.all_imaginary_indexes.append([i, j-1])
-
-
-    def zip_moved_letters(self):
-        """A dictionary to store the board letters images and rectangle for blitting."""
-
-        self.moved_dict = dict(zip(self.moved_images, zip(self.moved_letters, self.moved_rects)))
 
 
     def place_moved_letters(self):
         """All grids with letter tile on top will have the value of that letter."""
 
 
-        for b in range(225):
-            for let, rect in self.moved_dict.values():
-                moved_collide = self.board_grid[b].colliderect(rect)
-
-                if moved_collide:
-                    for index, number in self.index_and_number.items():
-                        if self.board_grid.index(self.board_grid[b]) == number:
-                            i = index[0]
-                            j = index[1]
-
-                            letter_id = str(number) + '_'
-                            self.board_array[i][j][let[0]] = letter_id
+        for imgage_id, let_index_rect in self.moved_dict.items():
+            i = let_index_rect[1][0]
+            j = let_index_rect[1][1]
+            letter = let_index_rect[0]
+            self.board_array[i][j][letter] = imgage_id[1]
 
         if self.accepted == True:
             for id_a in self.words_formed_horizontal.values():
                 if id_a not in self.words_ids:
                     self.words_ids.append(id_a)
-        
+
             for id_b in self.words_formed_vertical.values():
                 if id_b not in self.words_ids:
                     self.words_ids.append(id_b)
@@ -745,18 +710,16 @@ class GoWs():
 
     def draw_played_letters(self):
         """Draw the locked letters on the board."""
-        for image, let_rect in self.moved_dict.items():
-            self.screen.blit(image, let_rect[1])
-    
+        for image_id, let_index_rect in self.moved_dict.items():
+            self.screen.blit(image_id[0], let_index_rect[2])
+
 
     def draw_imaginary_rects(self):
 
-        if self.moved_rects:
-
-            for im_rect in self.imaginary_rectangles:
-                if 221 <= im_rect.x <= 681 :
-                    if 121 <= im_rect.y <= 581:
-                        self.screen.blit(self.imaginary, im_rect)
+        for im_rect in self.imaginary_rectangles:
+            if 221 <= im_rect.x <= 681 :
+                if 121 <= im_rect.y <= 581:
+                    self.screen.blit(self.imaginary, im_rect)
 
 
     def update_screen(self):
@@ -774,7 +737,7 @@ class GoWs():
             else:
                 self.board.draw_board()
                 self.buttons.draw_buttons()
-                if self.moved_images:
+                if self.moved_dict:
                     self.draw_imaginary_rects()
                     self.draw_played_letters()
                 self.let.blit_let()
