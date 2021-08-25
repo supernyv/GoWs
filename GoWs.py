@@ -505,8 +505,8 @@ class GoWs():
         And check whether the word is valid"""
         self.invalid_words = []
         self.valid_words = []
+        self.bonus_tiles_used = []
         self.points = 0
-        self.bonus = 0
         self.accepted = False
 
         if not self.let.selected:
@@ -582,7 +582,7 @@ class GoWs():
         """Check a single word"""
 
         try:
-            self.points += int(self.check.check_word(word_and_id))
+            step_points = int(self.check.check_word(word_and_id))
                     
         except Exception:
             if word_and_id:
@@ -592,28 +592,28 @@ class GoWs():
         else:
             self.valid_words.append(word_and_id[0])
 
-            self._multiply_points(word_and_id)
+            self._multiply_points(word_and_id, step_points)
 
 
-    def _multiply_points(self, word_and_id):
+    def _multiply_points(self, word_and_id, step_points):
         """Multiple each word points by the number of times indicated by the spot"""
 
-        self.bonus_tiles_used = []
-
         word, w_id = word_and_id
+        bonus_points = 0
 
         for number in w_id.split("_"):
             if int(number) in self.double_words_tiles:
-                self.points *= 2
                 self.bonus_tiles_used.append(int(number))
+                bonus_points += step_points*2
 
-            if int(number) in self.triple_words_tiles:
-                self.points *= 3
+            elif int(number) in self.triple_words_tiles:
                 self.bonus_tiles_used.append(int(number))
+                bonus_points += step_points*3
 
-
-        print(self.bonus_tiles_used)
-        
+        if bonus_points:
+            self.points += bonus_points
+        else:
+            self.points += step_points
 
 
     def _confirmed_or_rejected(self):
@@ -622,7 +622,7 @@ class GoWs():
             for l in range(len(self.let.rack_rects)):
                 self._undo(l)
             sfx.invalid_word_sound.play()
-            self.board.news = f"{self.invalid_words[0]} not valid."
+            self.board.news = f"{next(iter(self.invalid_words))} not valid."
             self.board.prep_news()
             self.accepted = False
 
@@ -649,7 +649,7 @@ class GoWs():
                 self._move_played_letters()
 
                 if self.bonus_tiles_used:
-                    for number in self.bonus_tiles_used:
+                    for number in set(self.bonus_tiles_used):
                         if number in self.double_words_tiles:
                             self.double_words_tiles.remove(number)
                         elif number in self.triple_words_tiles:
@@ -662,7 +662,6 @@ class GoWs():
                 self.board.news = f"No valid words."
                 self.board.prep_news()
                 self.accepted = False
-
 
 
     def _move_played_letters(self):
