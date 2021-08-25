@@ -17,7 +17,7 @@ class Menu():
         self.like_active = False
         self.like_event = False
         self.like_counter = 0
-        self.watcher = 0
+        self.game_reset = False
 
 
 
@@ -85,7 +85,7 @@ class Menu():
     def _check_inputs(self):
         if self.new_game_rect.collidepoint(self.mouse_position):
             if self.buttons.pressed == True:
-                self.watcher = 0
+                self.game_reset = False
                 self.game_paused = False
                 self.main_menu_on = False
                 self.new_game = True

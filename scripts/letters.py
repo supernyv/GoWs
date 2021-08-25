@@ -20,7 +20,7 @@ class Letters():
         #Movement Flag
         self.selected = False
         #Sound flag
-        self.played = True
+        self.tile_lifted = False
 
 
     def reset_rack(self):
@@ -68,18 +68,18 @@ class Letters():
 
         mouse_pos = pygame.mouse.get_pos()
 
-        for n in range(len(self.rack_rects)):
-            collision = self.rack_rects[n].collidepoint(mouse_pos)
-            if collision:
-                if self.selected:
+        if self.selected:
+            for n in range(len(self.rack_rects)):
+                collision = self.rack_rects[n].collidepoint(mouse_pos)
+                if collision:
+                    self.tile_lifted = True
                     self.rack_rects[n].center = mouse_pos
-                    #To allow drop sound to play only when a tile is dropped, used self.count
-                    self.played = False
 
-                if not self.selected:
-                    if self.played == False:
-                        sfx.drop_letter_sound.play()
-                        self.played = True
+        #To allow drop sound to play only when a tile is dropped
+        if not self.selected:
+            if self.tile_lifted:
+                sfx.drop_letter_sound.play()
+                self.tile_lifted = False
 
 
     def blit_let(self):

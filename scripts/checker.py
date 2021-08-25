@@ -14,13 +14,15 @@ class GoWsChecker():
         with open(filename) as f:
             self.dictionary = json.load(f)
     
-    def check_word(self, word):
+    def check_word(self, word_and_id):
         """Search for the word in a dictionary."""
+        word = word_and_id[0]
+        
         self.open_dictionary()
 
         if word.lower() in self.dictionary:
-            gathered = [self.letters.letters[point][0] for point in word]
+            awarded = [self.letters.letters[point][0] for point in word]
 
-            self.points = sum(gathered)
+            self.points = sum(awarded)
             return self.points
         return None
