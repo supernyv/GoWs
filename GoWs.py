@@ -352,6 +352,7 @@ class GoWs():
                         self.aligned.append(False)
 
     def empty_space_test(self):
+        """No empty space should be allowed between currently played letters"""
 
         self.empty_space_in = False
         truth_test = []
@@ -411,7 +412,7 @@ class GoWs():
 
 
     def cross_words(self):
-        """Get vertical and horizontal words"""
+        """Read words vertically and horizontally"""
 
         read_vertical = {}
         read_horizontal = {}
@@ -516,58 +517,62 @@ class GoWs():
                     if self.empty_space_in == False:
 
                         if False not in self.aligned:
-                            if not self.moved_dict:
-
-                                if self.horizontal_on:
-                                    horizontal_word = next(iter(self.horizontal_words_list))
-                                    self._word_checking(horizontal_word)
-                                elif self.vertical_on:
-                                    vertical_word = next(iter(self.vertical_words_list))
-                                    self._word_checking(vertical_word)
-
-                                self._confirmed_or_rejected()
-                                self.buttons.play_event = False
-
-                            else:
-                                if True in self.validate_moves:
-                                    if self.vertical_on:
-                                        self._check_all_words(self.vertical_words_list, self.horizontal_words_list)
-
-                                    else:
-                                        self._check_all_words(self.horizontal_words_list, self.vertical_words_list)
-
-                                    self._confirmed_or_rejected()
-                                    self.buttons.play_event = False
-    
-                                else:
-                                    self._reset_tiles_positions()
-                                    sfx.placement_sound.play()
-                                    self.board.news = f"Missed contact!"
-                                    self.board.prep_news()
-                                    self.buttons.play_event = False
+                            self._engage_checking()
 
                         else:
-                            self._reset_tiles_positions()
-                            sfx.placement_sound.play()
-                            self.board.news = f"Wrong Alignment!"
-                            self.board.prep_news()
-                            self.buttons.play_event = False
+                            self.board.news = "Wrong Alignment!"
+                            self._announce_news()
 
                     else:
-                        self._reset_tiles_positions()
-                        sfx.placement_sound.play()
                         self.board.news = f"Multiple words!"
-                        self.board.prep_news()
-                        self.buttons.play_event = False
+                        self._announce_news()
 
                 else:
-                    sfx.placement_sound.play()
                     self.board.news = f"Missed the board center!"
-                    self.board.prep_news()
-                    self._reset_tiles_positions()
-                    self.buttons.play_event = False
+                    self._announce_news()
 
             self.buttons.play_event = False
+
+
+    def _announce_news(self):
+        self._reset_tiles_positions()
+        sfx.placement_sound.play()
+        self.board.prep_news()
+        self.buttons.play_event = False
+
+
+    def _engage_checking(self):
+        """Start words checking procedures"""
+        if not self.moved_dict:
+
+            if self.horizontal_on:
+                horizontal_word = next(iter(self.horizontal_words_list))
+                self._word_checking(horizontal_word)
+            elif self.vertical_on:
+                vertical_word = next(iter(self.vertical_words_list))
+                self._word_checking(vertical_word)
+
+            self._confirmed_or_rejected()
+            self.buttons.play_event = False
+
+        else:
+            if True in self.validate_moves:
+                if self.vertical_on:
+                    self._check_all_words(self.vertical_words_list, self.horizontal_words_list)
+
+                else:
+                    self._check_all_words(self.horizontal_words_list, self.vertical_words_list)
+
+                self._confirmed_or_rejected()
+                self.buttons.play_event = False
+    
+            else:
+                self._reset_tiles_positions()
+                sfx.placement_sound.play()
+                self.board.news = f"Missed contact!"
+                self.board.prep_news()
+                self.buttons.play_event = False
+
 
 
     def _check_all_words(self, first, second):
@@ -631,17 +636,7 @@ class GoWs():
                 self.accepted = True
                 sfx.valid_word_sound.play()
 
-                if self.board.player_1 == True:
-                    self.board.player_1_score += self.points
-                    self.board.player_1 = False
-                    self.board.player_2 = True
-
-                elif self.board.player_2 == True:
-                    self.board.player_2_score += self.points
-                    self.board.player_1 = True
-                    self.board.player_2 = False
-
-                self.board.news = f"{self.valid_words[0]} : + {self.points}"
+                self._award_points()
 
                 self.board.prep_news()
                 self.board.prep_scores()
@@ -662,6 +657,20 @@ class GoWs():
                 self.board.news = f"No valid words."
                 self.board.prep_news()
                 self.accepted = False
+
+    def _award_points(self):
+        """Add earned points to the player's scores"""
+        if self.board.player_1 == True:
+            self.board.player_1_score += self.points
+            self.board.player_1 = False
+            self.board.player_2 = True
+
+        elif self.board.player_2 == True:
+            self.board.player_2_score += self.points
+            self.board.player_1 = True
+            self.board.player_2 = False
+
+        self.board.news = f"{self.valid_words[0]} : + {self.points}"
 
 
     def _move_played_letters(self):
