@@ -40,8 +40,10 @@ class Letters():
     def load_rack(self):
         """Load 7 letters images"""
         all_letters = list(self.letters.keys())
-
-        while len(self.rack_images) < 7:
+        full = 7
+        required = full - len(self.rack_images)
+        
+        for _ in range(required):
             let_b = choice(all_letters)
             if self.letters[let_b][1] > 0:
                 image_b = pygame.image.load("img/"+let_b+".png").convert()
@@ -55,6 +57,8 @@ class Letters():
                 self.rack_rects.append(image_b_rect)
                 self.rack_centers.append(image_b_rect.center)
                 self.rack_x += 34
+            else:
+                full += 1
         
         #Zip images and rectangles
         self.rack_dict = dict(zip(self.rack_images, zip(self.rack_letter_names, self.rack_rects)))
