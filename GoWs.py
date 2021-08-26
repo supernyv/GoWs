@@ -136,6 +136,7 @@ class GoWs():
         self.place_moved_letters()
         self.make_imaginary_rects()
 
+
     def new_game(self):
         """(Re)Initialize all game dynamic parameters"""
 
@@ -147,19 +148,19 @@ class GoWs():
         self.horizontal_words_list = []
         self.vertical_words_list = []
 
-        self.double_words_tiles = [
-        18, 26, 32, 46, 46, 58, 64, 70, 96, 98, 
+        self.double_word_tiles = [
+        18, 26, 32, 42, 46, 58, 64, 70, 96, 98, 
         126, 128, 154, 160, 166, 178, 182, 192, 198, 206
          ]
 
-        self.triple_words_tiles = [4, 10, 60, 74, 150, 164, 214, 220]
+        self.triple_word_tiles = [4, 10, 60, 74, 150, 164, 214, 220]
 
         self.double_letter_tiles = [
         0, 14, 16, 28, 37, 67, 80, 84, 
         107, 109, 115, 117,
         140, 144, 157, 187, 196, 208, 210, 224]
 
-        self.triple_letters_tiles = [
+        self.triple_letter_tiles = [
         20, 24, 51, 53, 76, 88, 93, 101,
         123, 131, 136, 148, 171, 173, 200, 204]
 
@@ -183,6 +184,7 @@ class GoWs():
         #Allowed directions flags
         self.vertical_on = False
         self.horizontal_on = False
+
 
     def create_board_rectangles(self):
         """The reference grids that will be used in the game"""
@@ -209,6 +211,7 @@ class GoWs():
         #Store every board grid reference rectangle with its index.
         rect_numbers = range(225)
         self.index_to_number = dict(zip(self.board_indexes, rect_numbers))
+        #Try self.index_coordinates_number
 
 
     def rack_in_collisions(self):
@@ -242,6 +245,7 @@ class GoWs():
 
     def check_grids_letters_collision(self):
         """Detect any collision between reference rectangles on grids and used letters rectangles."""
+        self.saved_words_bonus = {}
 
         if self.let.selected == False:
         #Define what happens when a letter from rack is dropped on the board grids
@@ -267,12 +271,13 @@ class GoWs():
                                 i = index[0]
                                 j = index[1]
 
+                                let_name = self.let.rack_letter_names[l]
                                 let_id = str(rect_number) + '_'
                                 self.used_indexes.append([i, j])
                                 self.used_ids.append(let_id)
-                                self.board_copy[i][j][self.let.rack_letter_names[l]] = let_id
+                                self.board_copy[i][j][let_name] = let_id
                                 #So let_id can be used for double and triple letter
-                                #While word id can be used for double and triple word, just check if id_x in word
+
 
                         #If undo button is pressed while some letters are on the board.
                         if self.buttons.undo_event:
@@ -317,6 +322,9 @@ class GoWs():
 
                     if collisions_4:
                         self._undo(l)
+
+
+
     def _undo(self, l):
         self.let.rack_rects[l].x = self.ract_init_x[l]
         self.let.rack_rects[l].y = self.let.rack_y
@@ -350,6 +358,7 @@ class GoWs():
                 for rect in self.used_rects[2:]:
                     if rect.y != self.used_rects[0].y:
                         self.aligned.append(False)
+
 
     def empty_space_test(self):
         """No empty space should be allowed between currently played letters"""
@@ -411,61 +420,6 @@ class GoWs():
             self.validate_moves.append(False)
 
 
-    def cross_words(self):
-        """Read words vertically and horizontally"""
-
-        read_vertical = {}
-        read_horizontal = {}
-
-        held_vertical = ""
-        vertical_id = ""
-
-        held_horizontal = ""
-        horizontal_id = ""
-
-        #Ranges need to be 16, not 15, so that the last row and the last column
-        #Always end the previous word formed, preventing the code from joining different loops
-        for column in range(16):
-            #To scan from top to bottom, right to left
-            for row in range(16):
-                p = self.board_copy[column][row]
-                if not p:
-                    if held_vertical:
-                        #Filter and append
-                        if len(held_vertical) > 1:
-                            read_vertical[held_vertical] = vertical_id.strip('_')
-                        held_vertical = ""
-                        vertical_id = ""
-
-                else:
-                    held_vertical += next(iter(p))
-                    vertical_id += next(iter(p.values()))
-
-
-        for row in range(16):
-            #To scan from left to right, top to bottom
-            for column in range(16):
-                n = self.board_copy[column][row]
-                if not n:
-                    if held_horizontal:
-                        #Filter and append
-                        if len(held_horizontal) > 1:
-                            read_horizontal[held_horizontal] = horizontal_id.strip('_')
-                        held_horizontal = ""
-                        horizontal_id = ""
-                else:
-                    held_horizontal += next(iter(n))
-                    horizontal_id += next(iter(n.values()))
-
-        if read_vertical:
-            self.vertical_words_list = [
-                (word, w_id) for word, w_id in read_vertical.items() if w_id not in self.words_ids]
-
-        if read_horizontal:
-            self.horizontal_words_list = [
-                (word, w_id) for word, w_id in read_horizontal.items() if w_id not in self.words_ids]
-
-
     def if_any_replacement(self):
         """If some tiles are on the replace rack."""
         count_replaced = 0
@@ -494,19 +448,98 @@ class GoWs():
                 self.board.player_1 = True
                 self.board.player_2 = False
 
+
+    def cross_words(self):
+        """Read words vertically and horizontally"""
+
+        read_vertical = {}
+        read_horizontal = {}
+
+        held_vertical = ""
+        vertical_id = ""
+
+        held_horizontal = ""
+        horizontal_id = ""
+
+        self.letter_bonus_used = []
+
+        #Ranges need to be 16, not 15, so that the last row and the last column
+        #Always end the previous word formed, preventing the code from joining different loops
+        for column in range(16):
+            #To scan from top to bottom, right to left
+            for row in range(16):
+                p = self.board_copy[column][row]
+                if not p:
+                    if held_vertical:
+                        #Filter and append
+                        if len(held_vertical) > 1:
+                            read_vertical[held_vertical] = vertical_id.strip('_')
+                        held_vertical = ""
+                        vertical_id = ""
+                else:
+                    held_vertical += next(iter(p))
+                    vertical_id += next(iter(p.values()))
+
+        for row in range(16):
+            #To scan from left to right, top to bottom
+            for column in range(16):
+                n = self.board_copy[column][row]
+                if not n:
+                    if held_horizontal:
+                        #Filter and append
+                        if len(held_horizontal) > 1:
+                            read_horizontal[held_horizontal] = horizontal_id.strip('_')
+                        held_horizontal = ""
+                        horizontal_id = ""
+                else:
+                    held_horizontal += next(iter(n))
+                    horizontal_id += next(iter(n.values()))
+
+        if read_vertical:
+            self.vertical_words_list = [
+                (word, w_id) for word, w_id in read_vertical.items() if w_id not in self.words_ids]
+            self._find_bonus_letters(self.vertical_words_list)
+
+        if read_horizontal:
+            self.horizontal_words_list = [
+                (word, w_id) for word, w_id in read_horizontal.items() if w_id not in self.words_ids]
+            self._find_bonus_letters(self.horizontal_words_list)
+
+
+    def _find_bonus_letters(self, words_list):
+        for word, w_id in words_list:
+            letters = list(word)
+            let_ids = w_id.split("_")
+            for bonus_let, let_id in zip(letters, let_ids):
+                self._get_bonus_points(word, bonus_let, int(let_id))
+
+
+    def _get_bonus_points(self, word, bonus_let, rect_number):
+        """Get bonus from letter bonus tiles"""
+        self.saved_words_bonus.setdefault(word, 0)
+
+        if rect_number in self.double_letter_tiles:
+            self.saved_words_bonus[word] += self.let.letters[bonus_let][0]
+            self.letter_bonus_used.append(rect_number)
+
+        elif rect_number in self.triple_letter_tiles:
+            self.saved_words_bonus[word] += self.let.letters[bonus_let][0]*2
+            self.letter_bonus_used.append(rect_number)
+
+
     def _reset_rack_coordinates(self):
-        x = 318
+        self.let.rack_x = 318
         for rect in self.let.rack_rects:
-            rect.x = x
-            x += 34
-        self.let.rack_x = x
+            rect.x = self.let.rack_x
+            self.let.rack_x += 34
+
 
     def make_the_word(self):
         """Formed a worded using the letters placed on the board when play button is pressed
         And check whether the word is valid"""
         self.invalid_words = []
         self.valid_words = []
-        self.bonus_tiles_used = []
+        self.word_bonus_used = []
         self.points = 0
         self.accepted = False
 
@@ -535,6 +568,7 @@ class GoWs():
 
 
     def _announce_news(self):
+        """News after playing wrong"""
         self._reset_tiles_positions()
         sfx.placement_sound.play()
         self.board.prep_news()
@@ -567,11 +601,8 @@ class GoWs():
                 self.buttons.play_event = False
     
             else:
-                self._reset_tiles_positions()
-                sfx.placement_sound.play()
                 self.board.news = f"Missed contact!"
-                self.board.prep_news()
-                self.buttons.play_event = False
+                self._announce_news()
 
 
 
@@ -587,7 +618,7 @@ class GoWs():
         """Check a single word"""
 
         try:
-            step_points = int(self.check.check_word(word_and_id))
+            step_points = int(self.check.check_word(word_and_id[0]))
                     
         except Exception:
             if word_and_id:
@@ -603,22 +634,33 @@ class GoWs():
     def _multiply_points(self, word_and_id, step_points):
         """Multiple each word points by the number of times indicated by the spot"""
 
-        word, w_id = word_and_id
-        bonus_points = 0
+        read_word, w_id = word_and_id
+        word_bonus = 0
+        let_bonus = 0
 
         for number in w_id.split("_"):
-            if int(number) in self.double_words_tiles:
-                self.bonus_tiles_used.append(int(number))
-                bonus_points += step_points*2
+            if int(number) in self.double_word_tiles:
+                self.word_bonus_used.append(int(number))
+                if self.saved_words_bonus[read_word]:
+                    let_bonus += self.saved_words_bonus[read_word]
 
-            elif int(number) in self.triple_words_tiles:
-                self.bonus_tiles_used.append(int(number))
-                bonus_points += step_points*3
+                word_bonus += (step_points+let_bonus)*2
 
-        if bonus_points:
-            self.points += bonus_points
+            elif int(number) in self.triple_word_tiles:
+                self.word_bonus_used.append(int(number))
+
+                if self.saved_words_bonus[read_word]:
+                    let_bonus += self.saved_words_bonus[read_word]
+
+                word_bonus += (step_points+let_bonus)*3
+
+        #For words
+        if word_bonus:
+            self.points += word_bonus
         else:
-            self.points += step_points
+            if self.saved_words_bonus[read_word]:
+                    let_bonus += self.saved_words_bonus[read_word]
+            self.points += (step_points+let_bonus)
 
 
     def _confirmed_or_rejected(self):
@@ -643,12 +685,19 @@ class GoWs():
 
                 self._move_played_letters()
 
-                if self.bonus_tiles_used:
-                    for number in set(self.bonus_tiles_used):
-                        if number in self.double_words_tiles:
-                            self.double_words_tiles.remove(number)
-                        elif number in self.triple_words_tiles:
-                            self.triple_words_tiles.remove(number)
+                if self.word_bonus_used:
+                    for number in set(self.word_bonus_used):
+                        if number in self.double_word_tiles:
+                            self.double_word_tiles.remove(number)
+                        elif number in self.triple_word_tiles:
+                            self.triple_word_tiles.remove(number)
+
+                if self.letter_bonus_used:
+                    for number in self.letter_bonus_used:
+                        if number in self.double_letter_tiles:
+                            self.double_letter_tiles.remove(number)
+                        elif number in self.triple_letter_tiles:
+                            self.triple_letter_tiles.remove(number)
 
             else:
                 for l in range(len(self.let.rack_rects)):
@@ -658,8 +707,11 @@ class GoWs():
                 self.board.prep_news()
                 self.accepted = False
 
+
     def _award_points(self):
         """Add earned points to the player's scores"""
+        #Add letters bonuses
+
         if self.board.player_1 == True:
             self.board.player_1_score += self.points
             self.board.player_1 = False
@@ -703,7 +755,6 @@ class GoWs():
         temporary_imaginary_rectangles = []
         temporary_imaginary_indexes = []
 
-            
         for i in range(15):
             for j in range(15):
                 if self.board_array[i][j]:
@@ -741,6 +792,7 @@ class GoWs():
 
         self.imaginary_rectangles = temporary_imaginary_rectangles
         self.all_imaginary_indexes = temporary_imaginary_indexes
+
 
     def place_moved_letters(self):
         """All grids with letter tile on top will have the value of that letter."""
