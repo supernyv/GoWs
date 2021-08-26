@@ -11,7 +11,6 @@ from scripts.letters import Letters
 from scripts.checker import GoWsChecker
 import scripts.sound_effects as sfx
 
-green_color = (50, 250, 20)
 
 class GoWs():
     """Game of Words (GoWs), by Supernyv."""
@@ -23,9 +22,11 @@ class GoWs():
         icon = pygame.image.load("img/icon.png")
         pygame.display.set_icon(icon)
         self.screen = pygame.display.set_mode((self.SCREENWIDTH, self.SCREENHEIGHT),0, 32)
-        self.bg_color = (40, 50, 60)
         pygame.display.set_caption(f"GoWs    |    Python {platform.python_version()}    |    Pygame {pygame.version.ver}    |    SDL {'.'.join([str(v) for v in pygame.get_sdl_version()])}")
         self.screen_rect = self.screen.get_rect()
+        self.bg_color = (40, 50, 60)
+        self.imaginary_color = (100, 255, 0)
+
         #Order Matters here
         self.let = Letters(self)
         self.board = Board(self)
@@ -37,7 +38,7 @@ class GoWs():
         #Imaginary rectangles
         self.imaginary_surface = pygame.Surface((29, 29)).convert()
         self.imaginary_surface.set_alpha(50)
-        self.imaginary_surface.fill(green_color)
+        self.imaginary_surface.fill(self.imaginary_color)
 
         self.imaginary_rectangles = []
         self.all_imaginary_indexes = []
@@ -55,6 +56,34 @@ class GoWs():
         pygame.mixer.music.play(-1, 0.00, 5000)     #(-1 is loop indefinetely, delay, fade in)
 
         pygame.event.set_allowed([pygame.QUIT, pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP, pygame.K_ESCAPE, pygame.K_SPACE])
+
+
+    def create_board_rectangles(self):
+        """The reference grids that will be used in the game"""
+        #Board reference grids
+        x_coordinates = [221, 251, 282, 313, 343, 374, 405, 435, 466, 497, 527, 558, 589, 619, 650]
+        #Would have used np.arange(221, 660, 31) if the grids were perfectly evenly spaced
+        y_coordinates = [v - 100 for v in x_coordinates]
+
+        self.board_rectangles = [pygame.Rect(x, y, 29, 29) for x in x_coordinates for y in y_coordinates]
+        self.board_indexes = [(x, y) for x in range(15) for y in range(15)]
+        #Because x come first, the board is read by columns (top to bottom)
+        self.index_to_rectangle = dict(zip(self.board_indexes, self.board_rectangles))
+
+        #Rack reference grid rectangles
+        new_x = list(range(318, 557, 34))
+        new_y = [630]
+        self.rack_grid = [pygame.Rect(x, y, 29, 29) for x in new_x for y in new_y]
+
+        #Replacer reference grids
+        last_x = list(range(37, 137, 32))
+        last_y = [330, 363]
+        self.replacer_grid = [pygame.Rect(x, y, 29, 29) for x in last_x for y in last_y]
+
+        #Store every board grid reference rectangle with its index.
+        rect_numbers = range(225)
+        self.index_to_number = dict(zip(self.board_indexes, rect_numbers))
+        #Try self.index_coordinates_number
 
 
     def start_game(self):
@@ -108,35 +137,6 @@ class GoWs():
                     self.menu.game_paused = True
 
 
-    def continue_game(self):
-        """Gaming function"""
-
-        self.let.load_rack()
-        self.let.get_sack_size()
-        self.board.prep_sack(str(self.let.number_letters_left))
-        self.let.update_let()
-        self.copy_board_array()
-        self.reset_used_items()
-        self.check_grids_letters_collision()
-        self.rack_in_collisions()
-        self.store_used_letters()
-
-        self.aligned_test()
-        self.empty_space_test()
-        self.starting_move()
-        self.valid_follow_up()
-        self.cross_words()
-
-        self.if_any_replacement()
-        self.buttons.check_play_event()
-        self.buttons.check_undo_event()
-        self.buttons.check_replace_event()
-
-        self.make_the_word()
-        self.place_moved_letters()
-        self.make_imaginary_rects()
-
-
     def new_game(self):
         """(Re)Initialize all game dynamic parameters"""
 
@@ -186,32 +186,37 @@ class GoWs():
         self.horizontal_on = False
 
 
-    def create_board_rectangles(self):
-        """The reference grids that will be used in the game"""
-        #Board reference grids
-        x_coordinates = [221, 251, 282, 313, 343, 374, 405, 435, 466, 497, 527, 558, 589, 619, 650]
-        #Would have used np.arange(221, 660, 31) if the grids were perfectly evenly spaced
-        y_coordinates = [v - 100 for v in x_coordinates]
+    def continue_game(self):
+        """Gaming function"""
 
-        self.board_rectangles = [pygame.Rect(x, y, 29, 29) for x in x_coordinates for y in y_coordinates]
-        self.board_indexes = [(x, y) for x in range(15) for y in range(15)]
-        #Because x come first, the board is read by columns (top to bottom)
-        self.index_to_rectangle = dict(zip(self.board_indexes, self.board_rectangles))
+        self.let.load_rack()
+        self.let.get_sack_size()
+        self.board.prep_sack(str(self.let.number_letters_left))
+        self.let.update_let()
+        self.copy_board_array()
+        self.reset_used_items()
+        self.check_grids_letters_collision()
+        self.rack_in_collisions()
+        self.store_used_letters()
 
-        #Rack reference grid rectangles
-        new_x = list(range(318, 557, 34))
-        new_y = [630]
-        self.rack_grid = [pygame.Rect(x, y, 29, 29) for x in new_x for y in new_y]
+        self.alignment_test()
+        self.empty_space_test()
+        self.starting_move()
+        self.valid_follow_up()
 
-        #Replacer reference grids
-        last_x = list(range(37, 137, 32))
-        last_y = [330, 363]
-        self.replacer_grid = [pygame.Rect(x, y, 29, 29) for x in last_x for y in last_y]
+        self.if_any_replacement()
+        self.buttons.check_play_event()
+        self.buttons.check_undo_event()
+        self.buttons.check_replace_event()
 
-        #Store every board grid reference rectangle with its index.
-        rect_numbers = range(225)
-        self.index_to_number = dict(zip(self.board_indexes, rect_numbers))
-        #Try self.index_coordinates_number
+        self.play_the_word()
+        self.place_moved_letters()
+        self.make_imaginary_rects()
+
+
+    def copy_board_array(self):
+        """Copy the board"""
+        self.board_copy = copy.deepcopy(self.board_array)
 
 
     def rack_in_collisions(self):
@@ -236,11 +241,6 @@ class GoWs():
         self.replaced_letters = []
         self.replaced_rects = []
         self.replaced_images = []
-
-
-    def copy_board_array(self):
-        """Copy the board"""
-        self.board_copy = copy.deepcopy(self.board_array)
 
 
     def check_grids_letters_collision(self):
@@ -278,11 +278,9 @@ class GoWs():
                                 self.board_copy[i][j][let_name] = let_id
                                 #So let_id can be used for double and triple letter
 
-
                         #If undo button is pressed while some letters are on the board.
                         if self.buttons.undo_event:
                             self._undo(l)
-
 
             #Define what happens when the letters from the rack are droped on the replace rack
             for rep in range(8):
@@ -312,7 +310,6 @@ class GoWs():
                         if self.buttons.undo_event:
                             self._undo(l)
 
-
             #Define what ahppens when rack letters drop on letters that have been locked on the board
             for l in range(len(self.let.rack_rects)):
             #Still 7 letters
@@ -322,7 +319,6 @@ class GoWs():
 
                     if collisions_4:
                         self._undo(l)
-
 
 
     def _undo(self, l):
@@ -339,7 +335,7 @@ class GoWs():
             self.replaced_dict = dict(zip(self.replaced_images, zip(self.replaced_letters, self.replaced_rects)))
 
 
-    def aligned_test(self):
+    def alignment_test(self):
         """To make sure all letters are aligned with the first placed on board"""
         self.aligned = []
     
@@ -426,19 +422,20 @@ class GoWs():
 
         if not self.let.selected:
             if self.buttons.replace_event:
+                if self.replaced_letters:
 
-                for image, letter_rect in self.replaced_dict.items():
+                    for image, letter_rect in self.replaced_dict.items():
 
-                    del self.let.rack_letter_names[self.let.rack_rects.index(letter_rect[1])]
-                    self.let.rack_rects.remove(letter_rect[1])
-                    self.let.rack_images.remove(image)
-                    self.let.letters[letter_rect[0]][1] += 1
-                    count_replaced += 1
-                self.buttons.replace_event = False
-                self.board.prep_sack(str(self.let.number_letters_left))
+                        del self.let.rack_letter_names[self.let.rack_rects.index(letter_rect[1])]
+                        self.let.rack_rects.remove(letter_rect[1])
+                        self.let.rack_images.remove(image)
+                        self.let.letters[letter_rect[0]][1] += 1
+                        count_replaced += 1
+                    self.buttons.replace_event = False
+                    self.board.prep_sack(str(self.let.number_letters_left))
 
-                #Reset rack letters positions
-                self._reset_rack_coordinates()
+                    #Reset rack letters positions
+                    self._reset_rack_coordinates()
 
         if count_replaced > 0:
             if self.board.player_1 == True:
@@ -449,7 +446,7 @@ class GoWs():
                 self.board.player_2 = False
 
 
-    def cross_words(self):
+    def _read_cross_words(self):
         """Read words vertically and horizontally"""
 
         read_vertical = {}
@@ -534,7 +531,7 @@ class GoWs():
             self.let.rack_x += 34
 
 
-    def make_the_word(self):
+    def play_the_word(self):
         """Formed a worded using the letters placed on the board when play button is pressed
         And check whether the word is valid"""
         self.invalid_words = []
@@ -547,11 +544,11 @@ class GoWs():
 
             if self.buttons.play_event:
                 if self.started:
+                    self._read_cross_words()
                     if self.empty_space_in == False:
 
                         if False not in self.aligned:
                             self._engage_checking()
-
                         else:
                             self.board.news = "Wrong Alignment!"
                             self._announce_news()
@@ -586,7 +583,7 @@ class GoWs():
                 vertical_word = next(iter(self.vertical_words_list))
                 self._word_checking(vertical_word)
 
-            self._confirmed_or_rejected()
+            self._accept_or_reject_words()
             self.buttons.play_event = False
 
         else:
@@ -597,13 +594,12 @@ class GoWs():
                 else:
                     self._check_all_words(self.horizontal_words_list, self.vertical_words_list)
 
-                self._confirmed_or_rejected()
+                self._accept_or_reject_words()
                 self.buttons.play_event = False
-    
+
             else:
                 self.board.news = f"Missed contact!"
                 self._announce_news()
-
 
 
     def _check_all_words(self, first, second):
@@ -628,10 +624,10 @@ class GoWs():
         else:
             self.valid_words.append(word_and_id[0])
 
-            self._multiply_points(word_and_id, step_points)
+            self._multiply_words_points(word_and_id, step_points)
 
 
-    def _multiply_points(self, word_and_id, step_points):
+    def _multiply_words_points(self, word_and_id, step_points):
         """Multiple each word points by the number of times indicated by the spot"""
 
         read_word, w_id = word_and_id
@@ -663,7 +659,7 @@ class GoWs():
             self.points += (step_points+let_bonus)
 
 
-    def _confirmed_or_rejected(self):
+    def _accept_or_reject_words(self):
 
         if len(self.invalid_words) > 0:
             for l in range(len(self.let.rack_rects)):
@@ -722,7 +718,7 @@ class GoWs():
             self.board.player_1 = True
             self.board.player_2 = False
 
-        self.board.news = f"{self.valid_words[0]} : + {self.points}"
+        self.board.news = f"{next(iter(self.valid_words))} : + {self.points}"
 
 
     def _move_played_letters(self):
@@ -811,7 +807,6 @@ class GoWs():
             for words, id_b in self.vertical_words_list:
                 if id_b not in self.words_ids:
                     self.words_ids.append(id_b)
-
 
 
     def draw_played_letters(self):
