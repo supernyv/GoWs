@@ -189,8 +189,8 @@ class GoWs():
     def continue_game(self):
         """Gaming function"""
 
-        self.let.load_rack()
         self.let.get_sack_size()
+        self.let.load_rack()
         self.board.prep_sack(str(self.let.number_letters_left))
         self.let.update_let()
         self.copy_board_array()
@@ -544,10 +544,10 @@ class GoWs():
 
             if self.buttons.play_event:
                 if self.started:
-                    self._read_cross_words()
                     if self.empty_space_in == False:
 
                         if False not in self.aligned:
+                            self._read_cross_words()
                             self._engage_checking()
                         else:
                             self.board.news = "Wrong Alignment!"
