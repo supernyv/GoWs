@@ -96,7 +96,7 @@ class GoWs():
                 self.menu.get_menu()
 
             else:
-                if self.menu.new_game == True:
+                if self.menu.new_game_event == True:
                     if self.menu.game_reset == False:
                         self.new_game()
                         self.menu.game_reset = True
@@ -163,6 +163,9 @@ class GoWs():
         self.triple_letter_tiles = [
         20, 24, 51, 53, 76, 88, 93, 101,
         123, 131, 136, 148, 171, 173, 200, 204]
+
+        self.forbidden_letter_tiles = [52, 108, 116, 172]
+        self.forbidden_word_tiles = [7, 105, 119, 217]
 
         #Imaginary rectangles references
         self.all_imaginary_indexes = []
@@ -523,6 +526,10 @@ class GoWs():
             self.saved_words_bonus[word] += self.let.letters[bonus_let][0]*2
             self.letter_bonus_used.append(rect_number)
 
+        elif rect_number in self.forbidden_letter_tiles:
+            self.saved_words_bonus[word] -= self.let.letters[bonus_let][0]*2
+            self.letter_bonus_used.append(rect_number)
+
 
     def _reset_rack_coordinates(self):
         self.let.rack_x = 318
@@ -642,13 +649,21 @@ class GoWs():
 
                 word_bonus += (step_points+let_bonus)*2
 
-            elif int(number) in self.triple_word_tiles:
+            if int(number) in self.triple_word_tiles:
                 self.word_bonus_used.append(int(number))
 
                 if self.saved_words_bonus[read_word]:
                     let_bonus += self.saved_words_bonus[read_word]
 
                 word_bonus += (step_points+let_bonus)*3
+
+            if int(number) in self.forbidden_word_tiles:
+                self.word_bonus_used.append(int(number))
+
+                if self.saved_words_bonus[read_word]:
+                    let_bonus += self.saved_words_bonus[read_word]
+
+                word_bonus -= (step_points+let_bonus)*3
 
         #For words
         if word_bonus:
@@ -687,6 +702,8 @@ class GoWs():
                             self.double_word_tiles.remove(number)
                         elif number in self.triple_word_tiles:
                             self.triple_word_tiles.remove(number)
+                        elif number in self.forbidden_word_tiles:
+                            self.forbidden_word_tiles.remove(number)
 
                 if self.letter_bonus_used:
                     for number in self.letter_bonus_used:
@@ -694,6 +711,8 @@ class GoWs():
                             self.double_letter_tiles.remove(number)
                         elif number in self.triple_letter_tiles:
                             self.triple_letter_tiles.remove(number)
+                        elif number in self.forbidden_letter_tiles:
+                            self.forbidden_letter_tiles.remove(number)
 
             else:
                 for l in range(len(self.let.rack_rects)):
@@ -718,7 +737,10 @@ class GoWs():
             self.board.player_1 = True
             self.board.player_2 = False
 
-        self.board.news = f"{next(iter(self.valid_words))} : + {self.points}"
+        if self.points > 0:
+            self.board.news = f"{next(iter(self.valid_words))} : + {self.points}"
+        else:
+            self.board.news = f"{next(iter(self.valid_words))} : - {-1*self.points}"
 
 
     def _move_played_letters(self):
