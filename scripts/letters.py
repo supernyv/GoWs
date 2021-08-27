@@ -1,5 +1,5 @@
 import pygame
-from random import choice
+from random import choice, choices
 import scripts.sound_effects as sfx
 
 
@@ -10,9 +10,9 @@ class Letters():
         """Create and Initialize letters position."""
 
         self.screen = game.screen
-        self.screen_rect = game.screen.get_rect()
 
         self.reset_rack()
+        self.get_letters_and_weights()
 
         self.rack_x = 318
         self.rack_y = 630
@@ -30,7 +30,7 @@ class Letters():
                 "P" : [3, 2], "Q" : [8, 1], "R" : [1, 6], "S" : [1, 6], "T" : [1, 6], 
                 "U" : [1, 6], "V" : [4, 2], "W" : [10, 1], "X" : [10, 1], "Y" : [10, 1], "Z" : [10, 1]}
 
-        self.number_letters_left = sum([number[1] for number in self.letters.values()])
+
         self.rack_images = []
         self.rack_letter_names = []
         self.rack_rects = []
@@ -39,33 +39,46 @@ class Letters():
 
     def load_rack(self):
         """Load 7 letters images"""
-        all_letters = list(self.letters.keys())
+
         full = 7
         required = full - len(self.rack_images)
         
-        for _ in range(required):
-            let_b = choice(all_letters)
-            if self.letters[let_b][1] > 0:
-                image_b = pygame.image.load("img/"+let_b+".png").convert()
-                self.rack_images.append(image_b)
-                self.rack_letter_names.append(let_b)
-                self.letters[let_b][1] -= 1
+        if self.number_letters_left > 0:
+            for _ in range(required):
+                let_b = next(iter(choices(self.all_letters, self.letters_probabilities, k=1)))
+                if self.letters[let_b][1] > 0:
+                    image_b = pygame.image.load("img/"+let_b+".png").convert()
+                    self.rack_images.append(image_b)
+                    self.rack_letter_names.append(let_b)
+                    self.letters[let_b][1] -= 1
 
-                image_b_rect = image_b.get_rect()
-                image_b_rect.x = self.rack_x
-                image_b_rect.y = self.rack_y
-                self.rack_rects.append(image_b_rect)
-                self.rack_centers.append(image_b_rect.center)
-                self.rack_x += 34
-            else:
-                full += 1
+                    image_b_rect = image_b.get_rect()
+                    image_b_rect.x = self.rack_x
+                    image_b_rect.y = self.rack_y
+                    self.rack_rects.append(image_b_rect)
+                    self.rack_centers.append(image_b_rect.center)
+                    self.rack_x += 34
+                else:
+                    full += 1
+                    self.get_letters_and_weights()
+        else:
+            #Game ends
+            pass
         
         #Zip images and rectangles
         self.rack_dict = dict(zip(self.rack_images, zip(self.rack_letter_names, self.rack_rects)))
     
+
     def get_sack_size(self):
         """Get the number of letters left in the sack"""
         self.number_letters_left = sum([number[1] for number in self.letters.values()])
+
+    def get_letters_and_weights(self):
+        """List all letters and their weight for better selection using random choice"""
+        self.all_letters = list(self.letters.keys())
+        self.letters_probabilities = [self.letters[let][1]//2 
+        if self.letters[let][1] > 5 else self.letters[let][1] for let in self.all_letters]
+
 
     def update_let(self):
         """Update letter position based on movement flag."""

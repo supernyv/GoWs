@@ -10,7 +10,7 @@ class Menu():
         self.screen_rect = self.screen.get_rect()
         self.SCREENWIDTH = game.SCREENWIDTH
         self.buttons = game.buttons
-        self.new_game = False
+        self.new_game_event = False
         self.game_paused = False
         self.main_menu_on = True
 
@@ -31,17 +31,17 @@ class Menu():
         self.options_rect.center = self.screen_rect.center
 
 
-        self.new_game = pygame.image.load("img/new_game.png").convert_alpha()
-        self.new_game_selected = pygame.image.load("img/new_game_selected.png").convert_alpha()
-        self.new_game_rect = self.new_game.get_rect()
-        self.new_game_rect.center = self.options_rect.center
-        self.new_game_rect.y = self.options_rect.y - 65
+        self.new_game_button = pygame.image.load("img/new_game.png").convert_alpha()
+        self.new_game_button_selected = pygame.image.load("img/new_game_selected.png").convert_alpha()
+        self.new_game_button_rect = self.new_game_button.get_rect()
+        self.new_game_button_rect.center = self.options_rect.center
+        self.new_game_button_rect.y = self.options_rect.y - 65
 
         self.resume_game = pygame.image.load("img/resume.png").convert_alpha()
         self.resume_game_selected = pygame.image.load("img/resume_selected.png").convert_alpha()
         self.resume_game_rect = self.resume_game.get_rect()
         self.resume_game_rect.center = self.options_rect.center
-        self.resume_game_rect.y = self.new_game_rect.y - 65
+        self.resume_game_rect.y = self.new_game_button_rect.y - 65
 
         self.credits = pygame.image.load("img/credits.png").convert_alpha()
         self.credits_selected = pygame.image.load("img/credits_selected.png").convert_alpha()
@@ -83,12 +83,12 @@ class Menu():
         self._check_inputs()
     
     def _check_inputs(self):
-        if self.new_game_rect.collidepoint(self.mouse_position):
+        if self.new_game_button_rect.collidepoint(self.mouse_position):
             if self.buttons.pressed == True:
                 self.game_reset = False
                 self.game_paused = False
                 self.main_menu_on = False
-                self.new_game = True
+                self.new_game_event = True
                 sfx.new_game_sound.play()
                 pygame.mixer.music.stop()
 
@@ -123,10 +123,10 @@ class Menu():
         self.screen.blit(self.logo, self.logo_rect)
 
 
-        if self.new_game_rect.collidepoint(self.mouse_position):
-            self.screen.blit(self.new_game_selected, self.new_game_rect)
+        if self.new_game_button_rect.collidepoint(self.mouse_position):
+            self.screen.blit(self.new_game_button_selected, self.new_game_button_rect)
         else:
-            self.screen.blit(self.new_game, self.new_game_rect)
+            self.screen.blit(self.new_game_button, self.new_game_button_rect)
         
         if self.options_rect.collidepoint(self.mouse_position):
             self.screen.blit(self.options_selected, self.options_rect)
