@@ -188,6 +188,8 @@ class GoWs():
         self.vertical_on = False
         self.horizontal_on = False
 
+        self.ai_turn = self.board.player_2 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 
     def continue_game(self):
         """Gaming function"""
@@ -210,6 +212,7 @@ class GoWs():
         self.if_any_replacement()
         self.buttons.check_play_event()
         self.buttons.check_undo_event()
+        self.perform_undo()
         self.buttons.check_replace_event()
 
         self.play_the_word()
@@ -281,10 +284,6 @@ class GoWs():
                                 self.board_copy[i][j][let_name] = let_id
                                 #So let_id can be used for double and triple letter
 
-                        #If undo button is pressed while some letters are on the board.
-                        if self.buttons.undo_event:
-                            self._undo(l)
-
             #Define what happens when the letters from the rack are droped on the replace rack
             for rep in range(8):
                 #Replace grids number
@@ -309,9 +308,6 @@ class GoWs():
                     if collisions_2:
                         self.let.rack_rects[l].center = self.rack_grid[r].center
 
-                    if not collisions_2:
-                        if self.buttons.undo_event:
-                            self._undo(l)
 
             #Define what ahppens when rack letters drop on letters that have been locked on the board
             for l in range(len(self.let.rack_rects)):
@@ -322,6 +318,11 @@ class GoWs():
 
                     if collisions_4:
                         self._undo(l)
+
+
+    def perform_undo(self):
+        if self.buttons.undo_event:
+            self._reset_tiles_positions()
 
 
     def _undo(self, l):
@@ -366,29 +367,29 @@ class GoWs():
         truth_test = []
 
         if self.used_indexes:
-            x, y = self.used_indexes[0]
+            i, j = self.used_indexes[0]
 
             for _ in range(len(self.used_indexes) - 1):
                 if self.vertical_on:
-                    y += 1
+                    j += 1
                     #For each first check if not self.board_array
-                    if self.board_array[x][y]:
-                        y += 1
-                        if not self.board_copy[x][y]:
+                    if self.board_array[i][j]:
+                        j += 1
+                        if not self.board_copy[i][j]:
                             truth_test.append(False)
                     else:
-                        if not self.board_copy[x][y]:
+                        if not self.board_copy[i][j]:
                             truth_test.append(False)
 
                 elif self.horizontal_on:
-                    x += 1
+                    i += 1
                     #For each first check if not self.board_array
-                    if self.board_array[x][y]:
-                        x += 1
-                        if not self.board_copy[x][y]:
+                    if self.board_array[i][j]:
+                        i += 1
+                        if not self.board_copy[i][j]:
                             truth_test.append(False)
                     else:
-                        if not self.board_copy[x][y]:
+                        if not self.board_copy[i][j]:
                             truth_test.append(False)
 
 
@@ -495,12 +496,12 @@ class GoWs():
                     held_horizontal += next(iter(n))
                     horizontal_id += next(iter(n.values()))
 
-        if read_vertical:
+        if read_vertical:   #Only list new vertical words
             self.vertical_words_list = [
                 (word, w_id) for word, w_id in read_vertical.items() if w_id not in self.words_ids]
             self._find_bonus_letters(self.vertical_words_list)
 
-        if read_horizontal:
+        if read_horizontal: #Only list new horizontal words
             self.horizontal_words_list = [
                 (word, w_id) for word, w_id in read_horizontal.items() if w_id not in self.words_ids]
             self._find_bonus_letters(self.horizontal_words_list)
@@ -511,23 +512,23 @@ class GoWs():
             letters = list(word)
             let_ids = w_id.split("_")
             for bonus_let, let_id in zip(letters, let_ids):
-                self._get_bonus_points(word, bonus_let, int(let_id))
+                self._get_bonus_points(word, w_id, bonus_let, int(let_id))
 
 
-    def _get_bonus_points(self, word, bonus_let, rect_number):
+    def _get_bonus_points(self, word, w_id, bonus_let, rect_number):
         """Get bonus from letter bonus tiles"""
-        self.saved_words_bonus.setdefault(word, 0)
+        self.saved_words_bonus.setdefault((word, w_id), 0)
 
         if rect_number in self.double_letter_tiles:
-            self.saved_words_bonus[word] += self.let.letters[bonus_let][0]
+            self.saved_words_bonus[(word, w_id)] += self.let.letters[bonus_let][0]
             self.letter_bonus_used.append(rect_number)
 
         elif rect_number in self.triple_letter_tiles:
-            self.saved_words_bonus[word] += self.let.letters[bonus_let][0]*2
+            self.saved_words_bonus[(word, w_id)] += self.let.letters[bonus_let][0]*2
             self.letter_bonus_used.append(rect_number)
 
         elif rect_number in self.forbidden_letter_tiles:
-            self.saved_words_bonus[word] -= self.let.letters[bonus_let][0]*2
+            self.saved_words_bonus[(word, w_id)] -= self.let.letters[bonus_let][0]*2
             self.letter_bonus_used.append(rect_number)
 
 
@@ -644,24 +645,24 @@ class GoWs():
         for number in w_id.split("_"):
             if int(number) in self.double_word_tiles:
                 self.word_bonus_used.append(int(number))
-                if self.saved_words_bonus[read_word]:
-                    let_bonus += self.saved_words_bonus[read_word]
+                if self.saved_words_bonus[word_and_id]:
+                    let_bonus += self.saved_words_bonus[word_and_id]
 
                 word_bonus += (step_points+let_bonus)*2
 
             if int(number) in self.triple_word_tiles:
                 self.word_bonus_used.append(int(number))
 
-                if self.saved_words_bonus[read_word]:
-                    let_bonus += self.saved_words_bonus[read_word]
+                if self.saved_words_bonus[word_and_id]:
+                    let_bonus += self.saved_words_bonus[word_and_id]
 
                 word_bonus += (step_points+let_bonus)*3
 
             if int(number) in self.forbidden_word_tiles:
                 self.word_bonus_used.append(int(number))
 
-                if self.saved_words_bonus[read_word]:
-                    let_bonus += self.saved_words_bonus[read_word]
+                if self.saved_words_bonus[word_and_id]:
+                    let_bonus += self.saved_words_bonus[word_and_id]
 
                 word_bonus -= (step_points+let_bonus)*3
 
@@ -669,8 +670,8 @@ class GoWs():
         if word_bonus:
             self.points += word_bonus
         else:
-            if self.saved_words_bonus[read_word]:
-                    let_bonus += self.saved_words_bonus[read_word]
+            if self.saved_words_bonus[word_and_id]:
+                    let_bonus += self.saved_words_bonus[word_and_id]
             self.points += (step_points+let_bonus)
 
 
@@ -841,6 +842,27 @@ class GoWs():
 
         for im_rect in self.imaginary_rectangles:
             self.screen.blit(self.imaginary_surface, im_rect)
+
+
+    def ai_simulations(self):
+        ...
+
+
+    def ai_play(self):
+        """Simulate the play for the second player played by the computer"""
+
+        #ai_letters = {let : [(rect_number, rect_pos), (i, j)]}
+
+        if self.ai_turn:
+            pygame.time.delay(50)
+
+            for let, coordinates in ai_letters.items():
+                i = coordinates[1][0]
+                j = coordinates[1][1]
+                self.board_array[i][j] = let #add all dict as expected here
+                self.let.rack_rects[coordinates[0][0]].center = coordinates[0][1]
+                pygame.time.delay(20)
+            self.play_event = True
 
 
     def update_screen(self):
