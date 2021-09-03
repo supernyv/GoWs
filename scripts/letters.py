@@ -76,8 +76,12 @@ class Letters():
     def get_letters_and_weights(self):
         """List all letters and their weight for better selection using random choice"""
         self.all_letters = list(self.letters.keys())
-        self.letters_probabilities = [self.letters[let][1]//2 
-        if self.letters[let][1] > 5 else self.letters[let][1] for let in self.all_letters]
+        rare_letters = ("J", "K," "Q", "W", "X", "Y", "Z")
+        vowels = ("A", "E", "I", "O", "U")
+        self.letters_probabilities = [2 if let in rare_letters 
+        else 20 if let in vowels
+        else 10 for let in self.all_letters]
+        # It should be more likely to get vowels, then letters that are not heavy than the rest
 
 
     def update_let(self):

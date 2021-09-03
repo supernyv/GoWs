@@ -78,7 +78,7 @@ class Menu():
         self.like_pressed = pygame.image.load("img/Like_pressed.png").convert_alpha()
         self.like_rect = self.like.get_rect()
         self.like_rect.center = self.logo_rect.center
-        self.like_rect.y = 500 
+        self.like_rect.y = 600 
 
         self._check_inputs()
     
