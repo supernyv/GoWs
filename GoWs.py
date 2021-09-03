@@ -26,6 +26,7 @@ class GoWs():
         self.screen_rect = self.screen.get_rect()
         self.bg_color = (40, 50, 60)
         self.imaginary_color = (100, 255, 0)
+        self.clock = pygame.time.Clock()
 
         #Order Matters here
         self.let = Letters(self)
@@ -71,12 +72,12 @@ class GoWs():
         self.index_to_rectangle = dict(zip(self.board_indexes, self.board_rectangles))
 
         #Rack reference grid rectangles
-        new_x = list(range(318, 557, 34))
+        new_x = range(318, 557, 34)
         new_y = [630]
-        self.rack_grid = [pygame.Rect(x, y, 29, 29) for x in new_x for y in new_y]
+        self.rack_rectangles = [pygame.Rect(x, y, 29, 29) for x in new_x for y in new_y]
 
         #Replacer reference grids
-        last_x = list(range(37, 137, 32))
+        last_x = range(37, 137, 32)
         last_y = [330, 363]
         self.replacer_grid = [pygame.Rect(x, y, 29, 29) for x in last_x for y in last_y]
 
@@ -110,6 +111,7 @@ class GoWs():
                     self.continue_game()
 
             self.update_screen()
+            pygame.display.update()
 
 
     def check_events(self):
@@ -130,10 +132,12 @@ class GoWs():
 
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
+                    self.transition_fall()
                     self.menu.main_menu_on = True
 
                 elif event.key == pygame.K_SPACE:
                     #Pause game to a menu with continue option
+                    self.transition_fade()
                     self.menu.game_paused = True
 
 
@@ -187,6 +191,7 @@ class GoWs():
         #Allowed directions flags
         self.vertical_on = False
         self.horizontal_on = False
+        self.moving_letters = False
 
         self.ai_turn = self.board.player_2 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -218,6 +223,11 @@ class GoWs():
         self.play_the_word()
         self.place_moved_letters()
         self.make_imaginary_rects()
+
+        if self.let.number_letters_left <= 0:
+            if len(self.let.rack_images) <= 0:
+                self.transition_fade()
+                self.menu.main_menu_on = True
 
 
     def copy_board_array(self):
@@ -254,75 +264,74 @@ class GoWs():
         self.saved_words_bonus = {}
 
         if self.let.selected == False:
-        #Define what happens when a letter from rack is dropped on the board grids
 
-            for b in range(225):
-            #We have 225 board tiles
-                for l in range(len(self.let.rack_rects)):
-                #and we have 7 or less rack tiles numbers depending on the bag.
-
-                    #Collision between letters and all the board grids
-                    collisions_1 = self.board_rectangles[b].colliderect(self.let.rack_rects[l])
-
-                    if collisions_1:
-                        self.let.rack_rects[l].center = self.board_rectangles[b].center
-
-                        self.used_images.append(self.let.rack_images[l])
-                        self.used_letters.append(self.let.rack_letter_names[l])
-                        self.used_rects.append(self.let.rack_rects[l])
-
-                        #Now get the coordinates of the grid where collision happened
-                        for index, rect_number in self.index_to_number.items():
-                            if self.board_rectangles.index(self.board_rectangles[b]) == rect_number:
-                                i = index[0]
-                                j = index[1]
-
-                                let_name = self.let.rack_letter_names[l]
-                                let_id = str(rect_number) + '_'
-                                self.used_indexes.append([i, j])
-                                self.used_ids.append(let_id)
-                                self.board_copy[i][j][let_name] = let_id
-                                #So let_id can be used for double and triple letter
-
-            #Define what happens when the letters from the rack are droped on the replace rack
-            for rep in range(8):
-                #Replace grids number
-                for l in range(len(self.let.rack_rects)):
-                    collisions_3 = self.replacer_grid[rep].colliderect(self.let.rack_rects[l])
-
-                    if collisions_3:
-                        self.let.rack_rects[l].center = self.replacer_grid[rep].center
-
-                        self.replaced_images.append(self.let.rack_images[l])
-                        self.replaced_letters.append(self.let.rack_letter_names[l])
-                        self.replaced_rects.append(self.let.rack_rects[l])
-
+            for l in range(len(self.let.rack_rects)):
             #Define what happens when the letters generated from letters dictionary appear on the screen.
-            for r in range(8):
-            #We have 8 rack grids
-                for l in range(len(self.let.rack_rects)):
+            #We have 8 rack grid rectangles
+                for r in range(8):
                 #and we have 7 letters
-                    collisions_2 = self.rack_grid[r].colliderect(self.let.rack_rects[l])
+                    collisions_2 = self.rack_rectangles[r].colliderect(self.let.rack_rects[l])
                     #Collision between letters and the rack grids
 
                     if collisions_2:
-                        self.let.rack_rects[l].center = self.rack_grid[r].center
+                        self.let.rack_rects[l].center = self.rack_rectangles[r].center
 
+                #Set a lock for the next loops to only operate when any one letter is moved from the rack
+                if self.let.rack_rects[l].center != self.rack_rectangles[l].center:
+                    self.moving_letters = True
 
-            #Define what ahppens when rack letters drop on letters that have been locked on the board
-            for l in range(len(self.let.rack_rects)):
-            #Still 7 letters
-                for let, index, rect in self.moved_dict.values():
-                #Goes through all the listed board letter rectangles
-                    collisions_4 = rect.colliderect(self.let.rack_rects[l])
+            if self.moving_letters:
+                for b in range(225):
+                    #Define what happens when a letter from rack is dropped on the board grids
+                    #We have 225 board tiles
+                    for l in range(len(self.let.rack_rects)):
+                        #Collision between letters and all the board grids
+                        collisions_1 = self.board_rectangles[b].colliderect(self.let.rack_rects[l])
 
-                    if collisions_4:
-                        self._undo(l)
+                        if collisions_1:
+                            self.let.rack_rects[l].center = self.board_rectangles[b].center
 
+                            self.used_images.append(self.let.rack_images[l])
+                            self.used_letters.append(self.let.rack_letter_names[l])
+                            self.used_rects.append(self.let.rack_rects[l])
+
+                            #Now get the coordinates of the grid where collision happened
+                            for index, rect_number in self.index_to_number.items():
+                                if self.board_rectangles.index(self.board_rectangles[b]) == rect_number:
+                                    i = index[0]
+                                    j = index[1]
+
+                                    let_name = self.let.rack_letter_names[l]
+                                    let_id = str(rect_number) + '_'
+                                    self.used_indexes.append([i, j])
+                                    self.used_ids.append(let_id)
+                                    self.board_copy[i][j][let_name] = let_id
+                                    #So let_id can be used for double and triple letter
+
+                for l in range(len(self.let.rack_rects)):
+                    #Define what happens when rack letters drop on letters that have been locked on the board
+                    for let, index, rect in self.moved_dict.values():
+                    #Goes through all the listed board letter rectangles
+                        collisions_4 = rect.colliderect(self.let.rack_rects[l])
+
+                        if collisions_4:
+                            self._undo(l)
+
+                    #Define what happens when the letters from the rack are droped on the replace rack
+                    for rep in range(8):
+                        collisions_3 = self.replacer_grid[rep].colliderect(self.let.rack_rects[l])
+
+                        if collisions_3:
+                            self.let.rack_rects[l].center = self.replacer_grid[rep].center
+
+                            self.replaced_images.append(self.let.rack_images[l])
+                            self.replaced_letters.append(self.let.rack_letter_names[l])
+                            self.replaced_rects.append(self.let.rack_rects[l])
 
     def perform_undo(self):
         if self.buttons.undo_event:
             self._reset_tiles_positions()
+            self.moving_letters = False
 
 
     def _undo(self, l):
@@ -334,9 +343,13 @@ class GoWs():
         """Store image, location, letter name, and rectangle for each used letter"""
 
         if self.used_images:
-            self.used_dict = dict(zip(zip(self.used_images, self.used_ids), zip(self.used_letters, self.used_indexes, self.used_rects)))
+            self.used_dict = dict(zip
+                                    (zip(self.used_images, self.used_ids), 
+                                    zip(self.used_letters, self.used_indexes, self.used_rects)))
         if self.replaced_images:
-            self.replaced_dict = dict(zip(self.replaced_images, zip(self.replaced_letters, self.replaced_rects)))
+            self.replaced_dict = dict(zip
+                                        (self.replaced_images, 
+                                        zip(self.replaced_letters, self.replaced_rects)))
 
 
     def alignment_test(self):
@@ -440,6 +453,7 @@ class GoWs():
 
                     #Reset rack letters positions
                     self._reset_rack_coordinates()
+                    self.moving_letters = False
 
         if count_replaced > 0:
             if self.board.player_1 == True:
@@ -569,6 +583,7 @@ class GoWs():
                     self.board.news = f"Missed the board center!"
                     self._announce_news()
 
+                self.moving_letters = False
             self.buttons.play_event = False
 
 
@@ -673,6 +688,9 @@ class GoWs():
             if self.saved_words_bonus[word_and_id]:
                     let_bonus += self.saved_words_bonus[word_and_id]
             self.points += (step_points+let_bonus)
+
+        if not self.moved_dict:
+            self.points *= 2 #First player gets 2 times word points
 
 
     def _accept_or_reject_words(self):
@@ -865,6 +883,33 @@ class GoWs():
             self.play_event = True
 
 
+    def transition_fade(self):
+        """A fading in transition"""
+        transition_screen = pygame.Surface((self.SCREENWIDTH, self.SCREENHEIGHT))
+        transition_screen.fill(self.bg_color)
+
+        for alpha in range(0, 255, 5):
+            transition_screen.set_alpha(alpha)
+            self.update_screen()
+            self.screen.blit(transition_screen, (0, 0))
+            self.clock.tick(500)
+            pygame.display.update()
+
+
+    def transition_fall(self):
+        """A falling background transition"""
+        transition_screen = pygame.Surface((self.SCREENWIDTH, self.SCREENHEIGHT))
+        transition_screen.fill(self.bg_color)
+        transition_screen_rect = transition_screen.get_rect()
+
+        for position in range(-self.SCREENHEIGHT, 0, 10):
+            transition_screen_rect.y = position
+            self.update_screen()
+            self.screen.blit(transition_screen, transition_screen_rect)
+            self.clock.tick(500)
+            pygame.display.update()
+
+
     def update_screen(self):
         """Update the images on the screen."""
 
@@ -885,7 +930,6 @@ class GoWs():
                     self.draw_played_letters()
                 self.let.blit_let()
 
-        pygame.display.update()
 
 if __name__ == "__main__":
     game = GoWs()
