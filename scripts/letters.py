@@ -58,9 +58,6 @@ class Letters():
                     self.rack_rects.append(image_b_rect)
                     self.rack_centers.append(image_b_rect.center)
                     self.rack_x += 34
-                else:
-                    full += 1
-                    self.get_letters_and_weights()
         else:
             #Game ends
             pass
