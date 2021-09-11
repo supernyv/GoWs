@@ -196,7 +196,15 @@ class GoWs():
         self.horizontal_on = False
         self.moving_letters = False
 
-        self.ai_turn = self.board.player_2 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        #VFX
+        self.initialize_effects()
+
+        self.orange_color = (255, 140, 0)
+        self.tomato_color = (255, 99, 71)
+        self.dark_red_color = (139, 0, 0)
+        self.sky_blue_color = (0, 191, 255)
+        self.dodger_blue_color = (30, 144, 255)
+        self.midnight_blue_color = (25, 25, 112)
 
 
     def continue_game(self):
@@ -225,6 +233,7 @@ class GoWs():
         self.play_the_word()
         self.place_moved_letters()
         self.make_imaginary_rects()
+        self.get_text_effect()
 
         if self.let.number_letters_left <= 0:
             if len(self.let.rack_images) <= 0:
@@ -677,6 +686,7 @@ class GoWs():
 
                 word_bonus += (step_points+let_bonus)*2
 
+
             if int(number) in self.triple_word_tiles:
                 self.word_bonus_used.append(int(number))
 
@@ -725,22 +735,33 @@ class GoWs():
                 self._move_played_letters()
 
                 if self.word_bonus_used:
+                    self.special_effect_on = True
                     for number in set(self.word_bonus_used):
                         if number in self.double_word_tiles:
                             self.double_word_tiles.remove(number)
+                            self.effect_tiles[number] = ("+Wx2", self.orange_color)
+
                         elif number in self.triple_word_tiles:
                             self.triple_word_tiles.remove(number)
+                            self.effect_tiles[number] = ("+Wx3", self.tomato_color)
+
                         elif number in self.forbidden_word_tiles:
                             self.forbidden_word_tiles.remove(number)
+                            self.effect_tiles[number] = ("-Wx3", self.dark_red_color)
 
                 if self.letter_bonus_used:
+                    self.special_effect_on = True
                     for number in self.letter_bonus_used:
                         if number in self.double_letter_tiles:
                             self.double_letter_tiles.remove(number)
+                            self.effect_tiles[number] = ("+Lx2", self.sky_blue_color)
+
                         elif number in self.triple_letter_tiles:
                             self.triple_letter_tiles.remove(number)
+                            self.effect_tiles[number] = ("+Lx3", self.dodger_blue_color)
                         elif number in self.forbidden_letter_tiles:
                             self.forbidden_letter_tiles.remove(number)
+                            self.effect_tiles[number] = ("-Lx2", self.midnight_blue_color)
 
             else:
                 self._reset_tiles_positions()
@@ -909,6 +930,41 @@ class GoWs():
             pygame.display.update()
 
 
+    def initialize_effects(self):
+        self.effect_opacity = 255
+        self.effect_font = pygame.font.Font(None, 20)
+        self.effect_speed = 0
+        self.special_effect_on = False
+        self.effect_tiles = {}
+        self.effect_surface_and_rect = {}
+
+
+    def get_text_effect(self):
+        if self.special_effect_on:
+            for number, text_and_color in self.effect_tiles.items():
+                x, y = self.board_rectangles[number].center
+                y -= self.effect_speed
+
+                effect_surface = self.effect_font.render(str(text_and_color[0]), True, text_and_color[1])
+                effect_surface.set_alpha(self.effect_opacity)
+                effect_surface_rect = effect_surface.get_rect(center=(x, y))
+
+                self.effect_surface_and_rect[number] = (effect_surface, effect_surface_rect)
+
+            if self.effect_opacity >= 0:
+                self.effect_opacity -= 0.5 
+            self.effect_speed += 0.15
+
+            if self.effect_opacity < 0:
+                self.initialize_effects()
+                
+
+    def draw_text_effect(self):
+        if self.special_effect_on:
+            for surface, rectangle in self.effect_surface_and_rect.values():
+                self.screen.blit(surface, rectangle)
+
+
     def update_screen(self):
         """Update the images on the screen."""
 
@@ -928,6 +984,7 @@ class GoWs():
                     self.draw_imaginary_rects()
                     self.draw_played_letters()
                 self.let.blit_let()
+                self.draw_text_effect()
 
 
 if __name__ == "__main__":
