@@ -35,28 +35,32 @@ class GoWs():
         self.buttons = Buttons(self)
         self.menu = Menu(self)
 
+        #Initialize all game variables
+        self.new_game()
 
         #Imaginary rectangles
         self.imaginary_surface = pygame.Surface((29, 29)).convert()
         self.imaginary_surface.set_alpha(50)
         self.imaginary_surface.fill(self.imaginary_color)
-
         self.imaginary_rectangles = []
         self.all_imaginary_indexes = []
-
-        self.new_game()
 
         #Initial positions of rack tiles
         self.ract_init_x = [318, 352, 386, 420, 454, 488, 522]
 
         self.create_board_rectangles()
 
+        #VFX
+        self.initialize_effects()
 
-        pygame.mixer.music.load('sounds/Kotalogie.mp3')
+        #Music
+        pygame.mixer.music.load('sounds/main_sound.mp3')
         pygame.mixer.music.set_volume(0.5)
         pygame.mixer.music.play(-1, 0.00, 5000)     #(-1 is loop indefinetely, delay, fade in)
 
-        pygame.event.set_allowed([pygame.QUIT, pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP, pygame.K_ESCAPE, pygame.K_SPACE])
+        #Input event
+        pygame.event.set_allowed([pygame.QUIT, pygame.MOUSEBUTTONDOWN, 
+                                    pygame.MOUSEBUTTONUP, pygame.K_ESCAPE, pygame.K_SPACE])
 
 
     def create_board_rectangles(self):
@@ -195,9 +199,6 @@ class GoWs():
         self.vertical_on = False
         self.horizontal_on = False
         self.moving_letters = False
-
-        #VFX
-        self.initialize_effects()
 
         self.orange_color = (255, 140, 0)
         self.tomato_color = (255, 99, 71)
