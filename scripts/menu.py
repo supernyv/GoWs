@@ -110,7 +110,7 @@ class Menu():
                 self.play_active = False
         else:
             if self.like_counter == 1:
-                wb.get("windows-default").open("http://facebook.com/congo3d/")
+                wb.get("windows-default").open("http://fb.me/gowspage")
                 self.like_counter = 0
             self.like_active = False
 
