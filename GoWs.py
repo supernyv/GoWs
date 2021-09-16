@@ -11,6 +11,10 @@ from scripts.letters import Letters
 from scripts.checker import GoWsChecker
 import scripts.sound_effects as sfx
 
+python_version = f"Python {platform.python_version()}"
+pygame_version = f"Pygame {pygame.version.ver}"
+SDL_version = f"SDL {'.'.join([str(v) for v in pygame.get_sdl_version()])}"
+
 
 class GoWs():
     """Game of Words (GoWs), by Supernyv."""
@@ -22,7 +26,7 @@ class GoWs():
         icon = pygame.image.load("img/icon.png")
         pygame.display.set_icon(icon)
         self.screen = pygame.display.set_mode((self.SCREENWIDTH, self.SCREENHEIGHT),0, 32)
-        pygame.display.set_caption(f"GoWs    |    Python {platform.python_version()}    |    Pygame {pygame.version.ver}    |    SDL {'.'.join([str(v) for v in pygame.get_sdl_version()])}")
+        pygame.display.set_caption(f"GoWs  |  {python_version}  |  {pygame_version}  |  {SDL_version}")
         self.screen_rect = self.screen.get_rect()
         self.bg_color = (40, 50, 60)
         self.imaginary_color = (100, 255, 0)
@@ -51,7 +55,7 @@ class GoWs():
         self.create_board_rectangles()
 
         #VFX
-        self.initialize_effects()
+        self.initialize_special_effects()
 
         #Music
         pygame.mixer.music.load('sounds/main_sound.mp3')
@@ -384,7 +388,6 @@ class GoWs():
                                         zip(self.replaced_letters, self.replaced_rects)))
 
 
-
     def alignment_test(self):
         """To make sure all letters are aligned with the first placed on board"""
         self.aligned = []
@@ -587,23 +590,28 @@ class GoWs():
         if not self.let.selected:
 
             if self.buttons.play_event:
-                if self.started:
-                    if self.empty_space_in == False:
+                if not self.used_rects:
+                    self.board.news = f"No word played!"
+                    self._announce_news()
 
-                        if False not in self.aligned:
-                            self._read_cross_words()
-                            self._engage_checking()
+                else:
+                    if self.started:
+                        if self.empty_space_in == False:
+
+                            if False not in self.aligned:
+                                self._read_cross_words()
+                                self._engage_checking()
+                            else:
+                                self.board.news = "Wrong Alignment!"
+                                self._announce_news()
+
                         else:
-                            self.board.news = "Wrong Alignment!"
+                            self.board.news = f"Multiple words!"
                             self._announce_news()
 
                     else:
-                        self.board.news = f"Multiple words!"
+                        self.board.news = f"Missed the board center!"
                         self._announce_news()
-
-                else:
-                    self.board.news = f"Missed the board center!"
-                    self._announce_news()
 
                 self.moving_letters = False
             self.buttons.play_event = False
@@ -686,7 +694,6 @@ class GoWs():
                     let_bonus += self.saved_words_bonus[word_and_id]
 
                 word_bonus += (step_points+let_bonus)*2
-
 
             if int(number) in self.triple_word_tiles:
                 self.word_bonus_used.append(int(number))
@@ -931,7 +938,7 @@ class GoWs():
             pygame.display.update()
 
 
-    def initialize_effects(self):
+    def initialize_special_effects(self):
         self.effect_opacity = 255
         self.effect_font = pygame.font.Font(None, 20)
         self.effect_speed = 0
@@ -957,7 +964,7 @@ class GoWs():
             self.effect_speed += 0.15
 
             if self.effect_opacity < 0:
-                self.initialize_effects()
+                self.initialize_special_effects()
                 
 
     def draw_text_effect(self):
