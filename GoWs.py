@@ -50,7 +50,7 @@ class GoWs():
         self.all_imaginary_indexes = []
 
         #Initial positions of rack tiles
-        self.ract_init_x = [318, 352, 386, 420, 454, 488, 522]
+        self.ract_init_x = [318, 352, 386, 420, 454, 488, 522, 556]
 
         self.create_board_rectangles()
 
@@ -60,8 +60,7 @@ class GoWs():
         #Music
         pygame.mixer.music.load('sounds/main_sound.mp3')
         pygame.mixer.music.set_volume(0.5)
-        pygame.mixer.music.play(-1, 0.00, 5000)     #(-1 is loop indefinetely, delay, fade in)
-
+        
         #Input event
         pygame.event.set_allowed([pygame.QUIT, pygame.MOUSEBUTTONDOWN, 
                                     pygame.MOUSEBUTTONUP, pygame.K_ESCAPE, pygame.K_SPACE])
@@ -193,8 +192,8 @@ class GoWs():
         self.board.prep_news()
         self.board.prep_scores()
         self.let.reset_rack()
+        self.let.load_golden_cover(self.board.golden_draw_rect.center)
         self.menu.game_reset = False
-        self.board_needs_a_copy = False
 
         #First move flag
         self.started = False
@@ -295,7 +294,6 @@ class GoWs():
                 #Set a lock for the next loops to only operate when any one letter is moved from the rack
                 if self.let.rack_rects[l].center != self.rack_rectangles[l].center:
                     self.moving_letters = True
-
 
             if self.moving_letters:
                 self._get_new_board_copy()
@@ -401,12 +399,14 @@ class GoWs():
                     if rect.x != self.used_rects[0].x:
                         self.aligned.append(False)
 
-            if self.used_rects[1].y == self.used_rects[0].y:
+            elif self.used_rects[1].y == self.used_rects[0].y:
                 self.horizontal_on = True
                 self.vertical_on = False
                 for rect in self.used_rects[2:]:
                     if rect.y != self.used_rects[0].y:
                         self.aligned.append(False)
+            else:
+                self.aligned.append(False)
 
 
     def empty_space_test(self):
@@ -876,6 +876,10 @@ class GoWs():
             for words, id_b in self.vertical_words_list:
                 if id_b not in self.words_ids:
                     self.words_ids.append(id_b)
+
+
+    def draw_hoovering_surface(self):
+        self.screen.blit(self.hoovering_surface, self.hoovering_rect)
 
 
     def draw_played_letters(self):
