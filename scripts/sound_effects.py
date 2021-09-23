@@ -20,3 +20,6 @@ drop_letter_sound.set_volume(0.5)
 
 new_game_sound = pygame.mixer.Sound('sounds/new_game.wav')
 new_game_sound.set_volume(0.5)
+
+golden_sound = pygame.mixer.Sound('sounds/golden_reveal.wav')
+golden_sound.set_volume(0.5)

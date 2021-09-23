@@ -18,10 +18,13 @@ class Menu():
         self.like_event = False
         self.like_counter = 0
         self.game_reset = False
-
+        self.playing_sound = False
 
 
     def get_menu(self):
+        if not self.playing_sound:
+            pygame.mixer.music.play(-1, 0.00, 5000)
+            self.playing_sound = True
 
         self.mouse_position = pygame.mouse.get_pos()
 
@@ -91,12 +94,15 @@ class Menu():
                 self.new_game_event = True
                 sfx.new_game_sound.play()
                 pygame.mixer.music.stop()
+                self.playing_sound = False
 
         
         if self.resume_game_rect.collidepoint(self.mouse_position):
             if self.buttons.pressed == True:
                 self.main_menu_on = False
                 self.game_paused = False    #Game continuing
+                pygame.mixer.music.stop()
+                self.playing_sound = False
 
         
         if self.buttons.pressed:

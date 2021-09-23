@@ -21,6 +21,7 @@ class Letters():
         self.selected = False
         #Sound flag
         self.tile_lifted = False
+        self.golden_taken = False
 
 
     def reset_rack(self):
@@ -65,6 +66,36 @@ class Letters():
         
         #Zip images and rectangles
         self.rack_dict = dict(zip(self.rack_images, zip(self.rack_letter_names, self.rack_rects)))
+
+
+    def _add_letter(self):
+
+        let = next(iter(choices(self.all_letters, self.letters_probabilities, k=1)))
+        image = pygame.image.load("img/"+let+".png").convert()
+        self.rack_images.append(image)
+        self.rack_letter_names.append(let)
+        self.letters[let][1] -= 1
+
+        image_rect = image.get_rect()
+        image_rect.x = self.rack_x
+        image_rect.y = self.rack_y
+        self.rack_rects.append(image_rect)
+        self.rack_centers.append(image_rect.center)
+        self.rack_x += 34
+
+    def load_golden_cover(self, center):
+        self.golden_cover_image = pygame.image.load("img/Golden_cover.png").convert()
+        self.golden_cover_rects = []
+
+        golden_init_x = center[0] - 47
+        golden_init_y = center[1] - 15
+
+        for _ in range(3):
+            new_rect = self.golden_cover_image.get_rect()
+            new_rect.x = golden_init_x
+            new_rect.y = golden_init_y
+            self.golden_cover_rects.append(new_rect)
+            golden_init_x += 33
     
 
     def get_sack_size(self):
@@ -97,6 +128,17 @@ class Letters():
                     self.selected_letter_name = self.rack_letter_names[n]
                     self.selected_letter_old_rect = self.rack_rects[n]
 
+            #If click on golden tile
+            for rect in self.golden_cover_rects:
+                if rect.collidepoint(mouse_pos):
+                    if len(self.rack_rects) <= 7:
+                        self.golden_cover_rects.remove(rect)
+                        self._add_letter()
+                        self.golden_taken = True
+        if self.golden_taken:
+            sfx.golden_sound.play()
+            self.golden_taken = False
+
         #To allow drop sound to play only when a tile is dropped
         if not self.selected:
             if self.tile_lifted:
@@ -108,16 +150,20 @@ class Letters():
         if self.selected_letter_name:
             self._bring_selected_letter_upward()
 
+
     def _bring_selected_letter_upward(self):
         """When a letter is select, load another copy of it to scale and blit on the forefront"""
-        new_image = pygame.image.load(f"img/{self.selected_letter_name}.png").convert()
-        self.selected_letter_image = pygame.transform.scale(new_image, (34, 34))
+        self.selected_letter_image = pygame.image.load(f"img/{self.selected_letter_name}_up.png").convert()
         self.selected_letter__new_rect = self.selected_letter_image.get_rect()
         self.selected_letter__new_rect.center = self.selected_letter_old_rect.center
 
 
     def blit_let(self):
         """Draw the letter at its current location."""
+        if self.golden_cover_rects:
+            for cover_rect in self.golden_cover_rects:
+                self.screen.blit(self.golden_cover_image, cover_rect)
+
         if self.rack_images:
             for image, name_rect in self.rack_dict.items():
                 if name_rect[1] != self.selected_letter_old_rect:
@@ -125,3 +171,4 @@ class Letters():
 
             if self.selected_letter_name:
                 self.screen.blit(self.selected_letter_image, self.selected_letter__new_rect)
+
